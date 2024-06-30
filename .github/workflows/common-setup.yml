@@ -39,4 +39,8 @@ jobs:
     - name: Create S3 Bucket
       if: env.bucket_exists == 'false'
       run: |
-        aws s3api create-bucket --bucket ${{ env.TF_STATE_BUCKET }} --region ${{ env.AWS_REGION }}
+        if [ "${{ env.AWS_REGION }}" = "us-east-1" ]; then
+          aws s3api create-bucket --bucket ${{ env.TF_STATE_BUCKET }}
+        else
+          aws s3api create-bucket --bucket ${{ env.TF_STATE_BUCKET }} --create-bucket-configuration LocationConstraint=${{ env.AWS_REGION }}
+        fi
