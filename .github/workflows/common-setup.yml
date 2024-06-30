@@ -1,0 +1,42 @@
+name: Common Setup
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  TF_STATE_BUCKET: my-tf-state-bucket
+
+jobs:
+  setup:
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Check for S3 Bucket
+      id: check_bucket
+      run: |
+        if aws s3api head-bucket --bucket ${{ env.TF_STATE_BUCKET }} 2>/dev/null; then
+          echo "bucket=exists" >> $GITHUB_ENV
+        else
+          echo "bucket=does_not_exist" >> $GITHUB_ENV
+        fi
+
+    - name: Create S3 Bucket
+      if: env.bucket == 'does_not_exist'
+      run: |
+        aws s3api create-bucket --bucket ${{ env.TF_STATE_BUCKET }} --region ${{ env.AWS_REGION }} --create-bucket-configuration LocationConstraint=${{ env.AWS_REGION }}
