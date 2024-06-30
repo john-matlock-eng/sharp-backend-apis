@@ -1,0 +1,34 @@
+name: Common Setup
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+    - name: Check for S3 Bucket
+      id: check_bucket
+      run: |
+        aws s3api head-bucket --bucket ${{ vars.TF_STATE_BUCKET }} || echo "Bucket does not exist"
+
+    - name: Create S3 Bucket
+      if: steps.check_bucket.outputs.bucket == 'Bucket does not exist'
+      run: |
+        aws s3api create-bucket --bucket ${{ vars.TF_STATE_BUCKET }} --region ${{ vars.AWS_REGION }} --create-bucket-configuration LocationConstraint=${{ vars.AWS_REGION }}
