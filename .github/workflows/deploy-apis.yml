@@ -50,15 +50,15 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ${{ vars.AWS_REGION }}
 
     - name: Log in to Amazon ECR
       run: |
-        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
 
     - name: Build and push Docker image
       run: |
-        docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
+        docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
 
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
@@ -71,7 +71,7 @@ jobs:
 
     - name: Plan Terraform
       id: terraform_plan
-      run: terraform plan -out tfplan -var="aws_region=${{ secrets.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}"
+      run: terraform plan -out tfplan -var="aws_region=${{ vars.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}"
 
     - name: Apply Terraform
       if: github.event_name == 'push'
