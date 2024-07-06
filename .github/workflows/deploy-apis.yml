@@ -27,6 +27,7 @@ jobs:
           api_folders="[]"
         fi
         echo "api_folders=$api_folders" >> $GITHUB_ENV
+        echo "Debug: $api_folders"
       shell: bash
 
   build-and-deploy:
