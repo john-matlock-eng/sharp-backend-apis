@@ -78,7 +78,7 @@ jobs:
 
     - name: Initialize Terraform
       run: |
-        terraform init -backend-config="bucket=${{ secrets.S3_TF_BUCKET_NAME }}" -backend-config="key=apis/${{ matrix.api_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+        terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="key=apis/${{ matrix.api_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
       working-directory: ./terraform/apis
 
     - name: Validate Terraform
