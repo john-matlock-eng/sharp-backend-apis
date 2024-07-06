@@ -102,7 +102,7 @@ jobs:
         github-token: ${{ secrets.GH_TOKEN }}
         script: |
           const fs = require('fs');
-          const path = `terraform/tfplan`;
+          const path = `terraform/apis/tfplan`;
           const output = fs.readFileSync(path, 'utf8');
           const comment = {
             issue_number: context.issue.number,
