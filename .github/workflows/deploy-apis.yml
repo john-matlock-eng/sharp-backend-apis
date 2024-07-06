@@ -35,7 +35,7 @@ jobs:
           api_folders="[]"
         fi
         echo "api_folders=$api_folders" >> $GITHUB_ENV
-        echo "::set-output name=api_folders::$api_folders"
+        echo "api_folders=$api_folders" > $GITHUB_OUTPUT
         echo "Debug: $api_folders"
       shell: bash
 
@@ -99,15 +99,13 @@ jobs:
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v5
       with:
-        github-token: ${{ secrets.GH_TOKEN }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          const path = `terraform/apis/tfplan`;
-          const output = fs.readFileSync(path, 'utf8');
-          const comment = {
+          const output = fs.readFileSync('terraform/apis/tfplan', 'utf8');
+          github.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `### Terraform Plan Output for ${{ matrix.api_folder }}\n\`\`\`\n${output}\n\`\`\``
-          };
-          await github.issues.createComment(comment);
+            body: '### Terraform Plan Output for ${{ matrix.api_folder }}\n\`\`\`\n' + output + '\n\`\`\`'
+          });
