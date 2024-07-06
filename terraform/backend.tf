@@ -18,9 +18,3 @@ variable "dynamodb_table_name" {
   description = "The name of the DynamoDB table for Terraform state locking"
   type        = string
 }
-
-variable "aws_region" {
-  description = "The AWS region to deploy resources"
-  type        = string
-  default     = "us-west-2"
-}
