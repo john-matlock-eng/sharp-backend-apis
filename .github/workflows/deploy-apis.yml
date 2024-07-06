@@ -10,6 +10,7 @@ on:
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
+  BACKEND_TF_DYNAMODB_TABLE_NAME: ${{ vars.BACKEND_TF_DYNAMODB_TABLE_NAME }}
 
 permissions:
   id-token: write
@@ -76,7 +77,8 @@ jobs:
       uses: hashicorp/setup-terraform@v1
 
     - name: Initialize Terraform
-      run: terraform init
+      run: |
+        terraform init -backend-config="bucket=${{ secrets.S3_TF_BUCKET_NAME }}" -backend-config="key=apis/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
       working-directory: ./terraform
 
     - name: Validate Terraform
@@ -100,7 +102,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          const output = fs.readFileSync('tfplan', 'utf8');
+          const output = fs.readFileSync('terraform/deployment/tfplan', 'utf8');
           github.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
