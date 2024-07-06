@@ -97,15 +97,16 @@ jobs:
 
     - name: Post Terraform Plan to PR
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v5
+      uses: actions/github-script@v7
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.GH_TOKEN }}
         script: |
           const fs = require('fs');
-          const output = fs.readFileSync('terraform/apis/tfplan', 'utf8');
-          github.issues.createComment({
+          const path = 'terraform/apis/tfplan';
+          const output = fs.readFileSync(path, 'utf8');
+          await github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '### Terraform Plan Output for ${{ matrix.api_folder }}\n\`\`\`\n' + output + '\n\`\`\`'
+            body: `### Terraform Plan Output for ${{ matrix.api_folder }}\n\`\`\`\n${output}\n\`\`\``
           });
