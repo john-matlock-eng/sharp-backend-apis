@@ -99,13 +99,15 @@ jobs:
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v5
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.GH_TOKEN }}
         script: |
           const fs = require('fs');
-          const output = fs.readFileSync('terraform/apis/tfplan', 'utf8');
-          github.issues.createComment({
+          const path = `terraform/tfplan`;
+          const output = fs.readFileSync(path, 'utf8');
+          const comment = {
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '### Terraform Plan Output\n```\n' + output + '\n```'
-          });
+            body: `### Terraform Plan Output for ${{ matrix.api_folder }}\n\`\`\`\n${output}\n\`\`\``
+          };
+          await github.issues.createComment(comment);
