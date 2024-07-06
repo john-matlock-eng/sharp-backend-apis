@@ -11,6 +11,8 @@ on:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   BACKEND_TF_DYNAMODB_TABLE_NAME: ${{ vars.BACKEND_TF_DYNAMODB_TABLE_NAME }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+
 
 permissions:
   id-token: write
