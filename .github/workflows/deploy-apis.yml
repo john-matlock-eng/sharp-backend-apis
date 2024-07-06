@@ -12,14 +12,14 @@ jobs:
   api-discovery:
     runs-on: ubuntu-latest
     outputs:
-      api_folders: ${{ steps.set_output.outputs.api_folders }}
+      api_folders: ${{ steps.api_discovery.outputs.api_folders }}
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Discover API folders
-      id: set_output
+      id: api_discovery
       run: |
         if [ -d "./apis" ]; then
           api_folders=$(find ./apis -maxdepth 1 -mindepth 1 -type d | sed 's|./apis/||' | jq -R -s -c 'split("\n")[:-1]')
@@ -41,10 +41,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      uses: docker/setup-buildx-action@v3
+
+    - name: Assume AWS Role
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Log in to Amazon ECR
       run: |
@@ -53,13 +59,6 @@ jobs:
     - name: Build and push Docker image
       run: |
         docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
@@ -72,7 +71,7 @@ jobs:
 
     - name: Plan Terraform
       id: terraform_plan
-      run: terraform plan -out tfplan -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}"
+      run: terraform plan -out tfplan -var="aws_region=${{ secrets.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}"
 
     - name: Apply Terraform
       if: github.event_name == 'push'
