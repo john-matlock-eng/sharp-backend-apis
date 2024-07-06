@@ -3,3 +3,8 @@ variable "aws_region" {
   type        = string
   default     = "us-east-2"
 }
+
+variable "image_tag" {
+  description = "Tag for the Docker image"
+  type        = string
+}

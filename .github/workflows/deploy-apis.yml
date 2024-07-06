@@ -21,8 +21,13 @@ jobs:
     - name: Discover API folders
       id: api_discovery
       run: |
-        api_folders=$(find ./apis -maxdepth 1 -mindepth 1 -type d | sed 's|./apis/||' | jq -R -s -c 'split("\n")[:-1]')
-        echo "::set-output name=api_folders::$api_folders"
+        if [ -d "./apis" ]; then
+          api_folders=$(find ./apis -maxdepth 1 -mindepth 1 -type d | sed 's|./apis/||' | jq -R -s -c 'split("\n")[:-1]')
+        else
+          api_folders="[]"
+        fi
+        echo "api_folders=$api_folders" >> $GITHUB_ENV
+      shell: bash
 
   build-and-deploy:
     needs: api-discovery
@@ -66,7 +71,6 @@ jobs:
     - name: Plan Terraform
       id: terraform_plan
       run: terraform plan -out tfplan -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}"
-      continue-on-error: true
 
     - name: Apply Terraform
       if: github.event_name == 'push'
@@ -78,7 +82,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const output = fs.readFileSync('tfplan', 'utf8');
+          const output = require('fs').readFileSync('tfplan', 'utf8');
           github.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
