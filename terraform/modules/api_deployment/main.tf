@@ -2,42 +2,42 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ECR Repository
-resource "aws_ecr_repository" "repo" {
-  name                 = var.api_name
-  image_tag_mutability = "IMMUTABLE"
-  encryption_configuration {
-    encryption_type = "AES256"
+# # ECR Repository
+# resource "aws_ecr_repository" "repo" {
+#   name                 = var.api_name
+#   image_tag_mutability = "IMMUTABLE"
+#   encryption_configuration {
+#     encryption_type = "AES256"
+#   }
+#   image_scanning_configuration {
+#     scan_on_push = true
+#   }
+# }
+
+# IAM Role for Lambda
+resource "aws_iam_role" "lambda_exec" {
+  name = "${var.api_name}_exec"
+  assume_role_policy = <<EOF
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": "sts:AssumeRole",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Effect": "Allow",
+        "Sid": ""
+      }
+    ]
   }
-  image_scanning_configuration {
-    scan_on_push = true
-  }
+  EOF
 }
 
-# # IAM Role for Lambda
-# resource "aws_iam_role" "lambda_exec" {
-#   name = "${var.api_name}_exec"
-#   assume_role_policy = <<EOF
-#   {
-#     "Version": "2012-10-17",
-#     "Statement": [
-#       {
-#         "Action": "sts:AssumeRole",
-#         "Principal": {
-#           "Service": "lambda.amazonaws.com"
-#         },
-#         "Effect": "Allow",
-#         "Sid": ""
-#       }
-#     ]
-#   }
-#   EOF
-# }
-
-# resource "aws_iam_role_policy_attachment" "lambda_policy" {
-#   role       = aws_iam_role.lambda_exec.name
-#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-# }
+resource "aws_iam_role_policy_attachment" "lambda_policy" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
 
 # # Lambda function
 # resource "aws_lambda_function" "lambda" {

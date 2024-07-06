@@ -77,17 +77,21 @@ jobs:
 
     - name: Initialize Terraform
       run: terraform init
+      working-directory: ./terraform
 
     - name: Validate Terraform
       run: terraform validate
+      working-directory: ./terraform
 
     - name: Plan Terraform
       id: terraform_plan
       run: terraform plan -out tfplan -var="aws_region=${{ env.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}"
+      working-directory: ./terraform
 
     - name: Apply Terraform
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve tfplan
+      working-directory: ./terraform
 
     - name: Post Terraform Plan to PR
       if: github.event_name == 'pull_request'
