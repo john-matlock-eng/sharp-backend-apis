@@ -1,8 +1,8 @@
 
-module "user_management_api" {
+module "api_deployment" {
   source          = "./modules/api_deployment"
   aws_region      = var.aws_region
-  api_name        = "user_management_api"
+  api_name        = var.api_name
   lambda_handler  = "app.main.handler"
   runtime         = "python3.12"
   image_tag       = var.image_tag

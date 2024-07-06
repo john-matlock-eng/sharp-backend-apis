@@ -79,21 +79,21 @@ jobs:
     - name: Initialize Terraform
       run: |
         terraform init -backend-config="bucket=${{ secrets.S3_TF_BUCKET_NAME }}" -backend-config="key=apis/${{ matrix.api_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
-      working-directory: ./terraform
+      working-directory: ./terraform/apis
 
     - name: Validate Terraform
       run: terraform validate
-      working-directory: ./terraform
+      working-directory: ./terraform/apis
 
     - name: Plan Terraform
       id: terraform_plan
       run: terraform plan -out tfplan -var="aws_region=${{ env.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}"
-      working-directory: ./terraform
+      working-directory: ./terraform/apis
 
     - name: Apply Terraform
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve tfplan
-      working-directory: ./terraform
+      working-directory: ./terraform/apis
 
     - name: Post Terraform Plan to PR
       if: github.event_name == 'pull_request'
@@ -102,7 +102,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          const output = fs.readFileSync('terraform/tfplan', 'utf8');
+          const output = fs.readFileSync('terraform/apis/tfplan', 'utf8');
           github.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
