@@ -78,7 +78,7 @@ jobs:
 
     - name: Initialize Terraform
       run: |
-        terraform init -backend-config="bucket=${{ secrets.S3_TF_BUCKET_NAME }}" -backend-config="key=apis/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+        terraform init -backend-config="bucket=${{ secrets.S3_TF_BUCKET_NAME }}" -backend-config="key=apis/${{ matrix.api_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
       working-directory: ./terraform
 
     - name: Validate Terraform
@@ -102,7 +102,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          const output = fs.readFileSync('terraform/deployment/tfplan', 'utf8');
+          const output = fs.readFileSync('terraform/tfplan', 'utf8');
           github.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
