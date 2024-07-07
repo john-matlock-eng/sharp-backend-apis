@@ -69,9 +69,15 @@ jobs:
         terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=apis/ecr/${{ matrix.api_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
       working-directory: ./terraform/apis/ecr
 
+    - name: Plan Terraform for ECR
+      id: terraform_plan
+      run: terraform plan -var="api_name=${{ matrix.api_folder }}" -var="aws_region=${{ env.AWS_REGION }}" -out=tfplan.txt
+      working-directory: ./terraform/apis/ecr
+
     - name: Apply Terraform for ECR
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
-        terraform apply -auto-approve -var="api_name=${{ matrix.api_folder }}" -var="aws_region=${{ env.AWS_REGION }}"
+        terraform apply -auto-approve tfplan.txt
       working-directory: ./terraform/apis/ecr
 
     - name: Log in to Amazon ECR
