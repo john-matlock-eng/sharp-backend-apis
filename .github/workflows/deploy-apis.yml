@@ -61,9 +61,6 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Print AWS identity
-      run: aws sts get-caller-identity
-
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
 
@@ -85,9 +82,7 @@ jobs:
 
     - name: Log in to Amazon ECR
       run: |
-        echo "Logging into ECR"
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-        echo "ECR login completed with status: $?"
 
     - name: Build Docker image
       run: |
