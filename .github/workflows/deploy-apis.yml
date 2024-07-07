@@ -70,7 +70,7 @@ jobs:
       working-directory: ./terraform/apis/ecr
 
     - name: Plan Terraform for ECR
-      id: terraform_plan
+      id: terraform_plan_ecr
       run: terraform plan -var="api_name=${{ matrix.api_folder }}" -var="aws_region=${{ env.AWS_REGION }}" -out=tfplan.txt
       working-directory: ./terraform/apis/ecr
 
