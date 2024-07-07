@@ -61,6 +61,9 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Print AWS identity
+      run: aws sts get-caller-identity
+
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
 
@@ -82,7 +85,9 @@ jobs:
 
     - name: Log in to Amazon ECR
       run: |
+        echo "Logging into ECR"
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+        echo "ECR login completed with status: $?"
 
     - name: Build Docker image
       run: |
@@ -91,7 +96,6 @@ jobs:
     - name: Push Docker image
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
-        echo "Docker push debug: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }}"
         docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
 
     - name: Initialize Terraform
