@@ -61,6 +61,19 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Initialize Terraform for ECR
+      run: |
+        terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=apis/ecr/${{ matrix.api_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+      working-directory: ./terraform/apis/ecr
+
+    - name: Apply Terraform for ECR
+      run: |
+        terraform apply -auto-approve -var="api_name=${{ matrix.api_folder }}" -var="aws_region=${{ env.AWS_REGION }}"
+      working-directory: ./terraform/apis/ecr
+
     - name: Log in to Amazon ECR
       run: |
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
@@ -73,9 +86,6 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
-
-    - name: Install Terraform
-      uses: hashicorp/setup-terraform@v1
 
     - name: Initialize Terraform
       run: |
