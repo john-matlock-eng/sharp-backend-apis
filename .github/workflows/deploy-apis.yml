@@ -85,10 +85,11 @@ jobs:
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
     - name: Build Docker image
+      if: github.event_name == 'pull_request'
       run: |
         docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }}
 
-    - name: Push Docker image
+    - name: Build and Push Docker image
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
