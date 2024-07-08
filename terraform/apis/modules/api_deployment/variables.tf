@@ -39,3 +39,15 @@ variable "build_platform" {
   type        = string
   default     = "linux/arm64"
 }
+
+variable "memory_size" {
+  description = "Lambda function memory size"
+  type        = number
+  default     = 256
+}
+
+variable "timeout" {
+  description = "Lambda function timeout in seconds"
+  type        = number
+  default     = 30
+}
