@@ -2,28 +2,17 @@ provider "aws" {
   region = var.aws_region
 }
 
-# # ECR Repository
-# resource "aws_ecr_repository" "repo" {
-#   name                 = var.api_name
-#   image_tag_mutability = "IMMUTABLE"
-#   encryption_configuration {
-#     encryption_type = "AES256"
-#   }
-#   image_scanning_configuration {
-#     scan_on_push = true
-#   }
-# }
+data "aws_ecr_repository" "api_ecr_repository" {
+  name = "${var.api_name}"
+}
 
-
-
-# # Lambda function
-# resource "aws_lambda_function" "lambda" {
-#   function_name = var.api_name
-#   image_uri     = "${aws_ecr_repository.repo.repository_url}:${var.image_tag}"
-#   handler       = var.lambda_handler
-#   runtime       = var.runtime
-#   role          = aws_iam_role.lambda_exec.arn
-# }
+resource "aws_lambda_function" "lambda" {
+  function_name = var.api_name
+  image_uri     = "${aws_ecr_repository.api_ecr_repository.repository_url}:${var.image_tag}"
+  handler       = var.lambda_handler
+  runtime       = var.runtime
+  role          = aws_iam_role.lambda_exec.arn
+}
 
 # # API Gateway
 # resource "aws_api_gateway_rest_api" "api" {
