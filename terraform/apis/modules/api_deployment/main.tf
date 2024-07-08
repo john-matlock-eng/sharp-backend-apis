@@ -8,7 +8,7 @@ data "aws_ecr_repository" "api_ecr_repository" {
 
 resource "aws_lambda_function" "lambda" {
   function_name = var.api_name
-  image_uri     = "${aws_ecr_repository.api_ecr_repository.repository_url}:${var.image_tag}"
+  image_uri     = "${data.aws_ecr_repository.api_ecr_repository.repository_url}:${var.image_tag}"
   handler       = var.lambda_handler
   runtime       = var.runtime
   role          = aws_iam_role.lambda_exec.arn
