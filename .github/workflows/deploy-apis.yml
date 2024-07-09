@@ -52,9 +52,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -87,12 +84,12 @@ jobs:
     - name: Build Docker image
       if: github.event_name == 'pull_request'
       run: |
-        docker buildx build --platform linux/amd64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }}
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }}
 
     - name: Build and Push Docker image
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
-        docker buildx build --platform linux/amd64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} ./apis/${{ matrix.api_folder }} --push
 
     - name: Initialize Terraform
       run: |
