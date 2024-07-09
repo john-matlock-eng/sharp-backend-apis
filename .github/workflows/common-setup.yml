@@ -44,3 +44,22 @@ jobs:
         else
           aws s3api create-bucket --bucket ${{ env.TF_STATE_BUCKET }} --create-bucket-configuration LocationConstraint=${{ env.AWS_REGION }}
         fi
+
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Initialize Terraform for Common Infrastructure
+      run: |
+        terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=common/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+      working-directory: ./terraform/common
+
+    - name: Plan Terraform for Common Infrastructure
+      id: terraform_plan_ecr
+      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -out=tfplan.txt
+      working-directory: ./terraform/common
+
+    - name: Apply Terraform for Common Infrastructure
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        terraform apply -auto-approve tfplan.txt
+      working-directory: ./terraform/common
