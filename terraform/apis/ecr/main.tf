@@ -12,12 +12,12 @@ resource "aws_ecr_lifecycle_policy" "lifecycle_policy" {
       {
         rulePriority = 1
         description  = "Keep last 3 images"
-        selection    = {
-          tagStatus    = "any"
-          countType    = "imageCountMoreThan"
-          countNumber  = 3
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 3
         }
-        action       = {
+        action = {
           type = "expire"
         }
       }
