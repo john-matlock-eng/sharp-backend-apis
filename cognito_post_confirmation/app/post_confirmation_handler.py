@@ -1,9 +1,8 @@
-import json
 import os
-from app.user_service import UserService
+from services.user_service import UserService
 from lib.dynamodb_controller import DynamoDBController
 
-def lambda_handler(event, context):
+def handler(event, context):
     user_sub = event['request']['userAttributes']['sub']
     moniker = event['request']['userAttributes'].get('custom:moniker')
     

@@ -59,7 +59,6 @@ resource "aws_lambda_function" "cognito_post_confirmation" {
   package_type  = "Image"
   image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/user_management:${var.image_tag}"
   role          = aws_iam_role.user_signup_lambda_cognito_role.arn
-  handler       = "app.post_confirmation_handler.lambda_handler"
   memory_size   = 256
   timeout       = 60
 
