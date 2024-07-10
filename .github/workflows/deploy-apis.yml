@@ -91,6 +91,7 @@ jobs:
       run: |
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} -f ./apis/${{ matrix.api_folder }}/Dockerfile . --push
 
+    - name: Run Container for Debugging
       run: |
         docker run --name debug-container -d ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }}
         docker exec debug-container ls -la /var/task
