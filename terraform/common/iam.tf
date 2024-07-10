@@ -56,7 +56,7 @@ resource "aws_iam_role" "user_signup_lambda_cognito_role" {
 
 resource "aws_iam_role_policy" "user_signup_lambda_cognito_policy" {
   name = "user_signup_lambda_cognito_policy"
-  role = aws_iam_role.lambda_cognito_role.id
+  role = aws_iam_role.user_signup_lambda_cognito_role.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
