@@ -57,7 +57,7 @@ resource "aws_cognito_user_pool_domain" "user_pool_domain" {
 resource "aws_lambda_function" "cognito_post_confirmation" {
   function_name = "cognito_post_confirmation"
   package_type  = "Image"
-  image_uri     = "${data.aws_ecr_repository.api_ecr_repository.repository_url}:${var.image_tag}"
+  image_uri     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:user_management:${var.image_tag}"
   role          = aws_iam_role.user_signup_lambda_cognito_role.arn
   handler       = "app.post_confirmation_handler.lambda_handler"
   memory_size   = 256
