@@ -37,7 +37,6 @@ jobs:
         fi
         echo "api_folders=$api_folders" >> $GITHUB_ENV
         echo "api_folders=$api_folders" > $GITHUB_OUTPUT
-        echo "Debug: $api_folders"
       shell: bash
 
   build-and-deploy:
@@ -81,23 +80,7 @@ jobs:
       run: |
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
-    - name: Debug - List Files in Project Root
-      run: |
-        echo "Listing files in project root"
-        ls -la
-
-    - name: Debug - List Files in apis/user_management
-      run: |
-        echo "Listing files in apis/user_management"
-        ls -la ./apis/user_management
-
-    - name: Debug - List Files in lib
-      run: |
-        echo "Listing files in lib"
-        ls -la ./lib
-
     - name: Build Docker image
-      if: github.event_name == 'pull_request'
       run: |
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} -f ./apis/${{ matrix.api_folder }}/Dockerfile .
 
@@ -105,14 +88,6 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} -f ./apis/${{ matrix.api_folder }}/Dockerfile . --push
-
-    - name: Run Container for Debugging
-      run: |
-        docker run --name debug-container -d ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }}
-        docker exec debug-container ls -la /var/task
-        docker exec debug-container ls -la /var/task/app
-        docker exec debug-container ls -la /var/task/lib
-        docker rm -f debug-container
 
     - name: Initialize Terraform
       run: |
