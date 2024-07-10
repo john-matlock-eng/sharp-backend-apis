@@ -81,6 +81,21 @@ jobs:
       run: |
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
+    - name: Debug - List Files in Project Root
+      run: |
+        echo "Listing files in project root"
+        ls -la
+
+    - name: Debug - List Files in apis/user_management
+      run: |
+        echo "Listing files in apis/user_management"
+        ls -la ./apis/user_management
+
+    - name: Debug - List Files in lib
+      run: |
+        echo "Listing files in lib"
+        ls -la ./lib
+
     - name: Build Docker image
       if: github.event_name == 'pull_request'
       run: |
