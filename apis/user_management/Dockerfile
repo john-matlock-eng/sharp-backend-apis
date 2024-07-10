@@ -1,4 +1,3 @@
-# Use the official AWS Lambda Python 3.12 base image
 FROM public.ecr.aws/lambda/python:3.12
 
 WORKDIR /var/task
