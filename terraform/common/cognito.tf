@@ -21,7 +21,7 @@ resource "aws_cognito_user_pool" "user_pool" {
     name                = "custom:moniker"
     attribute_data_type = "String"
     mutable             = true
-    required            = true
+    required            = false
   }
 
   admin_create_user_config {
