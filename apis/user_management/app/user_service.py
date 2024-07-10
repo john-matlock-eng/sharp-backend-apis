@@ -1,4 +1,4 @@
-from app.lib.dynamodb_controller import DynamoDBController
+from lib.dynamodb_controller import DynamoDBController
 
 class UserService:
     def __init__(self, dynamodb_controller):
@@ -7,21 +7,21 @@ class UserService:
     def get_user(self, user_id):
         return self.dynamodb_controller.get_item(f'USER#{user_id}', f'USER#{user_id}')
 
-    def create_user(self, user_id, name):
+    def create_user(self, user_id, moniker):
         item = {
             'PK': f'USER#{user_id}',
             'SK': f'USER#{user_id}',
             'DataType': 'USER',
-            'Username': name
+            'Moniker': moniker
         }
         self.dynamodb_controller.put_item(item)
 
-    def update_user(self, user_id, name=None):
+    def update_user(self, user_id, moniker=None):
         update_expression = "SET"
         expression_attribute_values = {}
-        if name:
-            update_expression += " Username = :n,"
-            expression_attribute_values[':n'] = name
+        if moniker:
+            update_expression += " Moniker = :m,"
+            expression_attribute_values[':m'] = moniker
         update_expression = update_expression.rstrip(',')
 
         self.dynamodb_controller.update_item(

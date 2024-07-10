@@ -1,8 +1,10 @@
 name: Common Setup
 
 on:
-  workflow_dispatch:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
@@ -55,7 +57,7 @@ jobs:
 
     - name: Plan Terraform for Common Infrastructure
       id: terraform_plan_ecr
-      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -out=tfplan.txt
+      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="image_tag=${{ github.sha }}" -out=tfplan.txt
       working-directory: ./terraform/common
 
     - name: Apply Terraform for Common Infrastructure
