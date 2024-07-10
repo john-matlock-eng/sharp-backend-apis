@@ -91,6 +91,13 @@ jobs:
       run: |
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }} -f ./apis/${{ matrix.api_folder }}/Dockerfile . --push
 
+      run: |
+        docker run --name debug-container -d ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.api_folder }}:${{ github.sha }}
+        docker exec debug-container ls -la /var/task
+        docker exec debug-container ls -la /var/task/app
+        docker exec debug-container ls -la /var/task/lib
+        docker rm -f debug-container
+
     - name: Initialize Terraform
       run: |
         terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=apis/${{ matrix.api_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
