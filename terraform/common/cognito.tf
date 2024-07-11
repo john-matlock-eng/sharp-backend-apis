@@ -12,7 +12,7 @@ resource "aws_cognito_user_pool" "user_pool" {
 
   schema {
     name                = "email"
-    required            = true
+    required            = false
     mutable             = true
     attribute_data_type = "String"
   }
