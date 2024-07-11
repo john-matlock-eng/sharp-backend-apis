@@ -1,5 +1,5 @@
 import os
-from services.user_service import UserService
+from app.services.user_service import UserService
 from lib.dynamodb_controller import DynamoDBController
 
 def handler(event, context):
