@@ -4,21 +4,14 @@ resource "aws_cognito_user_pool" "user_pool" {
   auto_verified_attributes = ["email"]
 
   schema {
-    name                = "username"
-    required            = false
-    mutable             = false
-    attribute_data_type = "String"
-  }
-
-  schema {
     name                = "email"
-    required            = false
+    required            = true
     mutable             = true
     attribute_data_type = "String"
   }
 
   schema {
-    name                = "custom:moniker"
+    name                = "moniker"
     attribute_data_type = "String"
     mutable             = true
     required            = false
