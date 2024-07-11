@@ -44,15 +44,18 @@ resource "aws_iam_role" "user_signup_lambda_cognito_role" {
   name = "user_signup_lambda_cognito_role"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
-    "Statement" : [{
-      "Action" : "sts:AssumeRole",
-      "Effect" : "Allow",
-      "Principal" : {
-        "Service" : "lambda.amazonaws.com"
+    "Statement" : [
+      {
+        "Action" : "sts:AssumeRole",
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : ["lambda.amazonaws.com", "cognito-idp.amazonaws.com"]
+        }
       }
-    }]
+    ]
   })
 }
+
 
 resource "aws_iam_role_policy" "user_signup_lambda_cognito_policy" {
   name = "user_signup_lambda_cognito_policy"
@@ -64,17 +67,20 @@ resource "aws_iam_role_policy" "user_signup_lambda_cognito_policy" {
         "Effect" : "Allow",
         "Action" : [
           "dynamodb:PutItem",
-          "dynamodb:UpdateItem"
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem",
+          "dynamodb:Query"
         ],
-        "Resource" : "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.dynamodb_table_name}",
-        "Condition" : {
-          "ForAllValues:StringEquals" : {
-            "dynamodb:LeadingKeys" : "USER#"
-          },
-          "ForAllValues:StringEqualsIfExists" : {
-            "dynamodb:Attributes" : ["PK", "SK", "DataType", "Moniker", "CreatedAt"]
-          }
-        }
+        "Resource" : "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.dynamodb_table_name}"
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        "Resource" : "arn:aws:logs:*:*:*"
       }
     ]
   })
