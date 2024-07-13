@@ -1,5 +1,3 @@
-from lib.dynamodb_controller import DynamoDBController
-
 class CommunityService:
     def __init__(self, dynamodb_controller):
         self.dynamodb_controller = dynamodb_controller
@@ -30,3 +28,10 @@ class CommunityService:
 
     def delete_community(self, community_id):
         self.dynamodb_controller.delete_item(f'COMMUNITY#{community_id}', f'COMMUNITY#{community_id}')
+    
+    def list_communities(self):
+        filter_expression = "DataType = :community"
+        expression_attribute_values = {
+            ":community": "COMMUNITY"
+        }
+        return self.dynamodb_controller.scan(filter_expression, expression_attribute_values)

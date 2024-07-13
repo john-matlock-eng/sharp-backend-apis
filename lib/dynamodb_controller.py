@@ -38,3 +38,14 @@ class DynamoDBController:
         except ClientError as e:
             print(e.response['Error']['Message'])
             return None
+
+    def scan(self, filter_expression, expression_attribute_values):
+        try:
+            response = self.table.scan(
+                FilterExpression=filter_expression,
+                ExpressionAttributeValues=expression_attribute_values
+            )
+            return response.get('Items', [])
+        except ClientError as e:
+            print(e.response['Error']['Message'])
+            return []

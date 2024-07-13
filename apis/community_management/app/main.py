@@ -22,6 +22,11 @@ def read_root():
     logger.info("Root endpoint called")
     return {"message": "Welcome to the Community Management API"}
 
+@app.get("/communities/")
+def list_communities():
+    communities = community_service.list_communities()
+    return {"communities": communities}
+
 @app.get("/communities/{community_id}")
 def read_community(community_id: int):
     community = community_service.get_community(community_id)
