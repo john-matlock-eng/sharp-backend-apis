@@ -41,7 +41,7 @@ resource "aws_cognito_user_pool_client" "user_pool_client" {
   user_pool_id                 = aws_cognito_user_pool.user_pool.id
   name                         = "sharp_user_pool_client"
   generate_secret              = false
-  explicit_auth_flows          = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  explicit_auth_flows          = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_USER_SRP_AUTH"]
   supported_identity_providers = ["COGNITO"]
   allowed_oauth_flows          = ["code"]
   allowed_oauth_scopes         = ["phone", "email", "openid", "profile", "aws.cognito.signin.user.admin"]
