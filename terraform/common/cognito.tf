@@ -17,7 +17,6 @@ resource "aws_cognito_user_pool" "user_pool" {
     developer_only_attribute = false
     mutable                  = true
     required                 = false
-
   }
 
   admin_create_user_config {
@@ -25,15 +24,24 @@ resource "aws_cognito_user_pool" "user_pool" {
   }
 
   password_policy {
-    minimum_length    = 14
-    require_lowercase = true
-    require_numbers   = true
-    require_symbols   = true
-    require_uppercase = true
+    minimum_length                   = 14
+    require_lowercase                = true
+    require_numbers                  = true
+    require_symbols                  = true
+    require_uppercase                = true
+    temporary_password_validity_days = 7 # Explicitly set this value
   }
 
   lambda_config {
     post_confirmation = aws_lambda_function.cognito_post_confirmation.arn
+  }
+
+  # Ignore changes to certain attributes
+  lifecycle {
+    ignore_changes = [
+      password_policy[0].temporary_password_validity_days,
+      schema,
+    ]
   }
 }
 
