@@ -18,11 +18,12 @@
 #   EOF
 # }
 
-data "aws_iam_policy" "lambda_exec" {
-  arn = "arn:aws:iam::aws:policy/service-role/api_lambda_exec"
+data "aws_iam_role" "api_lambda_exec" {
+  name = "api_lambda_exec"
 }
 
+
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
-  role       = data.aws_iam_policy.lambda_exec.name
+  role       = data.aws_iam_policy.api_lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
