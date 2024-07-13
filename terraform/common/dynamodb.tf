@@ -1,8 +1,8 @@
 resource "aws_dynamodb_table" "sharp_app_data" {
-  name           = "sharp_app_data"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "PK"
-  range_key      = "SK"
+  name         = "sharp_app_data"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "PK"
+  range_key    = "SK"
 
   attribute {
     name = "PK"
@@ -20,7 +20,7 @@ resource "aws_dynamodb_table" "sharp_app_data" {
   }
 
   attribute {
-    name = "KnowledgeSpaceId"
+    name = "CommunityId"
     type = "S"
   }
 
@@ -30,17 +30,17 @@ resource "aws_dynamodb_table" "sharp_app_data" {
   }
 
   global_secondary_index {
-    name               = "UserId-Index"
-    hash_key           = "UserId"
-    range_key          = "CreatedAt"
-    projection_type    = "ALL"
+    name            = "UserId-Index"
+    hash_key        = "UserId"
+    range_key       = "CreatedAt"
+    projection_type = "ALL"
   }
 
   global_secondary_index {
-    name               = "KnowledgeSpaceId-Index"
-    hash_key           = "KnowledgeSpaceId"
-    range_key          = "SK"
-    projection_type    = "ALL"
+    name            = "CommunityId-Index"
+    hash_key        = "CommunityId"
+    range_key       = "SK"
+    projection_type = "ALL"
   }
 
   tags = {
