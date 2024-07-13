@@ -2,6 +2,8 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_caller_identity" "current" {}
+
 data "aws_ecr_repository" "api_ecr_repository" {
   name = var.api_name
 }
