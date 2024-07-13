@@ -100,10 +100,10 @@ jobs:
 
     - name: Plan Terraform
       id: terraform_plan
-      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}" -out=tfplan.txt
+      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}" -out=tfplan.txt -lock=false
       working-directory: ./terraform/apis
 
     - name: Apply Terraform
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: terraform apply -auto-approve tfplan.txt
+      run: terraform apply -auto-approve tfplan.txt -lock=false
       working-directory: ./terraform/apis
