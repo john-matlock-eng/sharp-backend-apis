@@ -7,7 +7,7 @@ data "aws_ecr_repository" "api_ecr_repository" {
 }
 
 data "aws_iam_role" "api_lambda_exec" {
-  name = "api_lambda_exec"
+  name = "${var.api_name}_api_lambda_exec"
 }
 
 resource "aws_lambda_function" "lambda" {
