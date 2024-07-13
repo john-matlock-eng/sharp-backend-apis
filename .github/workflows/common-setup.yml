@@ -49,6 +49,35 @@ jobs:
 
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
+  
+    - name: Initialize Terraform for cognito_post_confirmation
+      run: |
+        terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=common/cognito_post_confirmation_terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+      working-directory: ./terraform/common/ecr
+
+    - name: Plan Terraform for cognito_post_confirmation
+      id: terraform_plan_ecr_cognito_post_confirmation
+      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="image_tag=${{ github.sha }}" -out=tfplan.txt
+      working-directory: ./terraform/common/ecr
+
+    - name: Apply Terraform for cognito_post_confirmation
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        terraform apply -auto-approve tfplan.txt
+      working-directory: ./terraform/common/ecr
+
+    - name: Log in to Amazon ECR
+      run: |
+        aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+    - name: Build Cognito Post Confirmation Docker image
+      run: |
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cognito_post_confirmation:${{ github.sha }} -f ./cognito_post_confirmation/Dockerfile .
+
+    - name: Build and Push Docker image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cognito_post_confirmation:${{ github.sha }} -f ./cognito_post_confirmation/Dockerfile . --push
 
     - name: Initialize Terraform for Common Infrastructure
       run: |

@@ -4,17 +4,20 @@ resource "aws_cognito_user_pool" "user_pool" {
   auto_verified_attributes = ["email"]
 
   schema {
-    name                = "email"
-    required            = true
-    mutable             = true
-    attribute_data_type = "String"
+    name                     = "email"
+    required                 = true
+    mutable                  = true
+    attribute_data_type      = "String"
+    developer_only_attribute = false
   }
 
   schema {
-    name                = "moniker"
-    attribute_data_type = "String"
-    mutable             = true
-    required            = false
+    name                     = "moniker"
+    attribute_data_type      = "String"
+    developer_only_attribute = false
+    mutable                  = true
+    required                 = false
+
   }
 
   admin_create_user_config {
@@ -54,7 +57,7 @@ resource "aws_cognito_user_pool_domain" "user_pool_domain" {
 resource "aws_lambda_function" "cognito_post_confirmation" {
   function_name = "cognito_post_confirmation"
   package_type  = "Image"
-  image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/user_management:${var.image_tag}"
+  image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/cognito_post_confirmation:${var.image_tag}"
   role          = aws_iam_role.user_signup_lambda_cognito_role.arn
   memory_size   = 256
   timeout       = 60
