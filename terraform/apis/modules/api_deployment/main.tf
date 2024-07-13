@@ -62,8 +62,8 @@ resource "aws_iam_policy" "lambda_dynamodb" {
           "dynamodb:Scan"
         ],
         Resource = [
-          "${aws_dynamodb_table.sharp_app_data.arn}",
-          "${aws_dynamodb_table.sharp_app_data.arn}/*",
+          "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/sharp_app_data",
+          "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/sharp_app_data/*",
         ],
       },
     ]
