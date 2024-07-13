@@ -29,11 +29,6 @@ resource "aws_dynamodb_table" "sharp_app_data" {
     type = "S"
   }
 
-  attribute {
-    name = "UpdatedAt"
-    type = "S"
-  }
-
   global_secondary_index {
     name            = "UserId-Index"
     hash_key        = "UserId"
