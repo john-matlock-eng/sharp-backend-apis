@@ -8,4 +8,5 @@ COPY services/ /var/task/app/services
 COPY apis/user_management/requirements.txt /var/task/
 
 RUN pip install --no-cache-dir -r /var/task/requirements.txt
+ENV PYTHONPATH="/var/task/app:${PYTHONPATH}"
 CMD ["app.main.handler"]
