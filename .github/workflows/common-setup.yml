@@ -70,10 +70,16 @@ jobs:
       run: |
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
+    - name: Build Cognito Post Confirmation Docker image
+      run: |
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cognito_post_confirmation:${{ github.sha }} -f ./cognito_post_confirmation/Dockerfile .
+
     - name: Build and Push Docker image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cognito_post_confirmation:${{ github.sha }} -f ./cognito_post_confirmation/Dockerfile .
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cognito_post_confirmation:${{ github.sha }}
+      
 
     - name: Initialize Terraform for Common Infrastructure
       run: |
