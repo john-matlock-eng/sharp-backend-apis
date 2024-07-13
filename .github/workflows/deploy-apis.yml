@@ -105,5 +105,5 @@ jobs:
 
     - name: Apply Terraform
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: terraform apply -auto-approve tfplan.txt -lock=false
+      run: terraform apply -lock=false tfplan.txt
       working-directory: ./terraform/apis
