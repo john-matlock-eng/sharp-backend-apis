@@ -2,6 +2,8 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_caller_identity" "current" {}
+
 data "aws_ecr_repository" "api_ecr_repository" {
   name = var.api_name
 }
@@ -44,6 +46,32 @@ resource "aws_iam_policy" "lambda_logging" {
     ]
   })
 }
+
+resource "aws_iam_policy" "lambda_dynamodb" {
+  name        = "${var.api_name}_lambda_dynamodb_policy"
+  description = "IAM policy for logging from a lambda"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Scan"
+        ],
+        Resource = [
+          "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/sharp_app_data",
+          "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/sharp_app_data/*",
+        ],
+      },
+    ]
+  })
+}
+
 
 resource "aws_iam_role_policy_attachment" "lambda_logging_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
