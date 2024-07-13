@@ -45,6 +45,32 @@ resource "aws_iam_policy" "lambda_logging" {
   })
 }
 
+resource "aws_iam_policy" "lambda_dynamodb" {
+  name        = "${var.api_name}_lambda_dynamodb_policy"
+  description = "IAM policy for logging from a lambda"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Scan"
+        ],
+        Resource = [
+          "${aws_dynamodb_table.sharp_app_data.arn}",
+          "${aws_dynamodb_table.sharp_app_data.arn}/*",
+        ],
+      },
+    ]
+  })
+}
+
+
 resource "aws_iam_role_policy_attachment" "lambda_logging_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
   policy_arn = aws_iam_policy.lambda_logging.arn
