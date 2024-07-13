@@ -54,7 +54,7 @@ resource "aws_cognito_user_pool_domain" "user_pool_domain" {
 resource "aws_lambda_function" "cognito_post_confirmation" {
   function_name = "cognito_post_confirmation"
   package_type  = "Image"
-  image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/user_management:${var.image_tag}"
+  image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/cognito_post_confirmation:${var.image_tag}"
   role          = aws_iam_role.user_signup_lambda_cognito_role.arn
   memory_size   = 256
   timeout       = 60
