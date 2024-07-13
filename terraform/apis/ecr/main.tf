@@ -1,11 +1,10 @@
-# ECR Repository
-resource "aws_ecr_repository" "cognito_post_confirmation_repo" {
-  name                 = "cognito_post_confirmation"
+resource "aws_ecr_repository" "repo" {
+  name                 = var.api_name
   image_tag_mutability = "IMMUTABLE"
 }
 
 resource "aws_ecr_lifecycle_policy" "lifecycle_policy" {
-  repository = aws_ecr_repository.cognito_post_confirmation_repo.name
+  repository = aws_ecr_repository.repo.name
 
   policy = jsonencode({
     rules = [
