@@ -25,10 +25,29 @@ resource "aws_iam_role" "lambda_exec_role" {
   EOF
 }
 
-resource "aws_iam_policy_attachment" "api_lambda_policy_attachment" {
-  name       = "cognito_post_confirmation_lambda_exec_attachment"
-  roles      = [aws_iam_role.lambda_exec_role.name]
-  policy_arn = aws_iam_policy.lambda_policy.arn
+resource "aws_iam_policy" "lambda_logging" {
+  name        = "${var.api_name}_lambda_logging_policy"
+  description = "IAM policy for logging from a lambda"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ],
+        Resource = "arn:aws:logs:*:*:*"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_logging_attachment" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = aws_iam_policy.lambda_logging.arn
 }
 
 resource "aws_lambda_function" "lambda" {
