@@ -4,17 +4,20 @@ resource "aws_cognito_user_pool" "user_pool" {
   auto_verified_attributes = ["email"]
 
   schema {
-    name                = "email"
-    required            = true
-    mutable             = true
-    attribute_data_type = "String"
+    name                     = "email"
+    required                 = true
+    mutable                  = true
+    attribute_data_type      = "String"
+    developer_only_attribute = false
   }
 
   schema {
-    name                = "moniker"
-    attribute_data_type = "String"
-    mutable             = true
-    required            = false
+    name                     = "moniker"
+    attribute_data_type      = "String"
+    developer_only_attribute = false
+    mutable                  = true
+    required                 = false
+
   }
 
   admin_create_user_config {
