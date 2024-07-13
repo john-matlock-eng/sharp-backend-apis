@@ -30,13 +30,28 @@ resource "aws_iam_policy" "lambda_policy" {
   })
 }
 
-data "aws_iam_role" "api_lambda_exec" {
-  name = "api_lambda_exec"
+resource "aws_iam_role" "cognito_post_confirmation_lambda_exec" {
+  name               = "cognito_post_confirmation_lambda_exec"
+  assume_role_policy = <<EOF
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": "sts:AssumeRole",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Effect": "Allow",
+        "Sid": ""
+      }
+    ]
+  }
+  EOF
 }
 
 resource "aws_iam_policy_attachment" "api_lambda_policy_attachment" {
-  name       = "api_lambda_policy_attachment"
-  roles      = [data.aws_iam_role.api_lambda_exec.name]
+  name       = "cognito_post_confirmation_lambda_exec_attachment"
+  roles      = [aws_iam_role.cognito_post_confirmation_lambda_exec.name]
   policy_arn = aws_iam_policy.lambda_policy.arn
 }
 
