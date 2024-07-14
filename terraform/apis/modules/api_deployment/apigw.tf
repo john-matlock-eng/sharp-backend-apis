@@ -1,3 +1,13 @@
+# Data sources for existing Cognito resources
+data "aws_cognito_user_pools" "sharp_user_pool" {
+  name = "sharp_user_pool"
+}
+
+data "aws_cognito_user_pool_clients" "sharp_user_pool_client" {
+  user_pool_id = data.aws_cognito_user_pools.sharp_user_pool.ids[0]
+}
+
+# API Gateway
 resource "aws_api_gateway_rest_api" "api" {
   name        = "${var.api_name}_api"
   description = "API Gateway for ${var.api_name}"
@@ -9,12 +19,23 @@ resource "aws_api_gateway_resource" "proxy" {
   path_part   = "{proxy+}"
 }
 
+# JWT Authorizer
+resource "aws_api_gateway_authorizer" "jwt_authorizer" {
+  name            = "${var.api_name}-jwt-authorizer"
+  rest_api_id     = aws_api_gateway_rest_api.api.id
+  type            = "COGNITO_USER_POOLS"
+  provider_arns   = [data.aws_cognito_user_pools.sharp_user_pool.arns[0]]
+  identity_source = "$request.header.Authorization"
+}
+
+
 # ANY method
 resource "aws_api_gateway_method" "any" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.proxy.id
   http_method   = "ANY"
-  authorization = "NONE"
+  authorization = "JWT"
+  authorizer_id = aws_api_gateway_authorizer.jwt_authorizer.id
 }
 
 resource "aws_api_gateway_integration" "any" {
