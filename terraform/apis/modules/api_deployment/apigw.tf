@@ -21,7 +21,7 @@ resource "aws_api_gateway_resource" "proxy" {
 
 # JWT Authorizer
 resource "aws_api_gateway_authorizer" "jwt_authorizer" {
-  name            = "jwt-authorizer"
+  name            = "${var.api_name}-jwt-authorizer"
   rest_api_id     = aws_api_gateway_rest_api.api.id
   type            = "COGNITO_USER_POOLS"
   provider_arns   = [data.aws_cognito_user_pools.sharp_user_pool.arns[0]]
