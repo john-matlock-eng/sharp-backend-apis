@@ -1,7 +1,6 @@
 import os
-import boto3
-import logging
 import requests
+import logging
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
