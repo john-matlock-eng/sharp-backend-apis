@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from mangum import Mangum
-from app.services.cognito_service import get_current_user, CognitoService
+from app.services.cognito_service import get_current_user
 from app.services.community_service import CommunityService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community import CommunityCreate, CommunityUpdate
@@ -25,8 +25,9 @@ def read_root():
     return {"message": "Welcome to the Community Management API"}
 
 @app.get("/communities/")
-def list_communities(current_user: dict = Depends(get_current_user)):
+def list_communities(token: str):
     try:
+        current_user = get_current_user(token)
         communities = community_service.list_communities()
         return {"communities": communities}
     except ClientError as e:
@@ -34,8 +35,9 @@ def list_communities(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Error listing communities")
 
 @app.get("/communities/{community_id}")
-def read_community(community_id: int, current_user: dict = Depends(get_current_user)):
+def read_community(community_id: int, token: str):
     try:
+        current_user = get_current_user(token)
         community = community_service.get_community(community_id)
         if community:
             logger.info(f"Community {community_id} retrieved successfully")
@@ -47,8 +49,9 @@ def read_community(community_id: int, current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=500, detail="Error getting community")
 
 @app.post("/communities/")
-def create_community(community: CommunityCreate, current_user: dict = Depends(get_current_user)):
+def create_community(community: CommunityCreate, token: str):
     try:
+        current_user = get_current_user(token)
         existing_community = community_service.get_community(community.community_id)
         if existing_community:
             logger.error(f"Community ID {community.community_id} already exists")
@@ -61,8 +64,9 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
         raise HTTPException(status_code=500, detail="Error creating community")
 
 @app.put("/communities/{community_id}")
-def update_community(community_id: int, community: CommunityUpdate):
+def update_community(community_id: int, community: CommunityUpdate, token: str):
     try:
+        current_user = get_current_user(token)
         existing_community = community_service.get_community(community_id)
         if not existing_community:
             logger.error(f"Community {community_id} not found")
@@ -75,8 +79,9 @@ def update_community(community_id: int, community: CommunityUpdate):
         raise HTTPException(status_code=500, detail="Error updating community")
 
 @app.delete("/communities/{community_id}")
-def delete_community(community_id: int, current_user: dict = Depends(get_current_user)):
+def delete_community(community_id: int, token: str):
     try:
+        current_user = get_current_user(token)
         community = community_service.get_community(community_id)
         if not community:
             logger.error(f"Community {community_id} not found")
