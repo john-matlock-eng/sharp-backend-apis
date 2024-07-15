@@ -57,7 +57,7 @@ class CognitoService:
                 )
                 return payload
             else:
-                logger.error("Unable to find appropriate key")
+                logger.error(f"Unable to find appropriate key for issuer: https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool_id}")
                 raise HTTPException(status_code=400, detail="Invalid token")
         except JWTError as e:
             logger.error(f"JWT error: {e}")
