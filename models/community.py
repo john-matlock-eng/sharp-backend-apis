@@ -1,7 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, UUID4
 
 class CommunityCreate(BaseModel):
-    community_id: int
+    community_id: UUID4
     name: str
 
 class CommunityUpdate(BaseModel):

@@ -6,6 +6,7 @@ from app.services.cognito_service import get_current_user
 from app.services.community_service import CommunityService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community import CommunityCreate, CommunityUpdate
+from pydantic import UUID4
 import os
 import logging
 from botocore.exceptions import ClientError
@@ -47,9 +48,9 @@ def list_communities(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Error listing communities")
 
 @app.get("/communities/{community_id}")
-def read_community(community_id: int, current_user: dict = Depends(get_current_user)):
+def read_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
-        community = community_service.get_community(community_id)
+        community = community_service.get_community(str(community_id))
         if community:
             logger.info(f"Community {community_id} retrieved successfully")
             return community
@@ -62,11 +63,11 @@ def read_community(community_id: int, current_user: dict = Depends(get_current_u
 @app.post("/communities/")
 def create_community(community: CommunityCreate, current_user: dict = Depends(get_current_user)):
     try:
-        existing_community = community_service.get_community(community.community_id)
+        existing_community = community_service.get_community(str(community.community_id))
         if existing_community:
             logger.error(f"Community ID {community.community_id} already exists")
             raise HTTPException(status_code=400, detail="Community ID already exists")
-        community_service.create_community(community.community_id, community.name)
+        community_service.create_community(str(community.community_id), community.name)
         logger.info(f"Community {community.community_id} created successfully")
         return {"message": "Community created successfully"}
     except ClientError as e:
@@ -74,13 +75,13 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
         raise HTTPException(status_code=500, detail="Error creating community")
 
 @app.put("/communities/{community_id}")
-def update_community(community_id: int, community: CommunityUpdate, current_user: dict = Depends(get_current_user)):
+def update_community(community_id: UUID4, community: CommunityUpdate, current_user: dict = Depends(get_current_user)):
     try:
-        existing_community = community_service.get_community(community_id)
+        existing_community = community_service.get_community(str(community_id))
         if not existing_community:
             logger.error(f"Community {community_id} not found")
             raise HTTPException(status_code=404, detail="Community not found")
-        community_service.update_community(community_id, community.name)
+        community_service.update_community(str(community_id), community.name)
         logger.info(f"Community {community_id} updated successfully")
         return {"message": "Community updated successfully"}
     except ClientError as e:
@@ -88,13 +89,13 @@ def update_community(community_id: int, community: CommunityUpdate, current_user
         raise HTTPException(status_code=500, detail="Error updating community")
 
 @app.delete("/communities/{community_id}")
-def delete_community(community_id: int, current_user: dict = Depends(get_current_user)):
+def delete_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
-        community = community_service.get_community(community_id)
+        community = community_service.get_community(str(community_id))
         if not community:
             logger.error(f"Community {community_id} not found")
             raise HTTPException(status_code=404, detail="Community not found")
-        community_service.delete_community(community_id)
+        community_service.delete_community(str(community_id))
         logger.info(f"Community {community_id} deleted successfully")
         return {"message": "Community deleted successfully"}
     except ClientError as e:
