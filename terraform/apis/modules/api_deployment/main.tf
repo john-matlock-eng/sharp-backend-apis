@@ -90,4 +90,10 @@ resource "aws_lambda_function" "lambda" {
   architectures = ["x86_64"]
   memory_size   = var.memory_size
   timeout       = var.timeout
+  environment {
+    variables = {
+      USER_POOL_ID  = var.cognito_user_pool_id,
+      APP_CLIENT_ID = var.cognito_user_pool_client_id
+    }
+  }
 }
