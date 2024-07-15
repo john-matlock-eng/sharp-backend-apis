@@ -92,9 +92,9 @@ resource "aws_lambda_function" "lambda" {
   timeout       = var.timeout
   environment {
     variables = {
-      USER_POOL_ID  = var.cognito_user_pool_id,
-      APP_CLIENT_ID = var.cognito_user_pool_client_id
-      AWS_REGION    = var.aws_region
+      USER_POOL_ID   = var.cognito_user_pool_id,
+      APP_CLIENT_ID  = var.cognito_user_pool_client_id
+      COGNITO_REGION = var.aws_region
     }
   }
 }
