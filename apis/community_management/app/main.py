@@ -13,7 +13,7 @@ from botocore.exceptions import ClientError
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"https://your_cognito_domain/oauth2/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="https://your_cognito_domain/oauth2/token")
 
 app = FastAPI()
 
@@ -28,9 +28,8 @@ def read_root():
     return {"message": "Welcome to the Community Management API"}
 
 @app.get("/communities/")
-def list_communities(token: str = Depends(oauth2_scheme)):
+def list_communities(current_user: dict = Depends(get_current_user)):
     try:
-        current_user = get_current_user(token)
         communities = community_service.list_communities()
         return {"communities": communities}
     except ClientError as e:
@@ -38,9 +37,8 @@ def list_communities(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=500, detail="Error listing communities")
 
 @app.get("/communities/{community_id}")
-def read_community(community_id: int, token: str = Depends(oauth2_scheme)):
+def read_community(community_id: int, current_user: dict = Depends(get_current_user)):
     try:
-        current_user = get_current_user(token)
         community = community_service.get_community(community_id)
         if community:
             logger.info(f"Community {community_id} retrieved successfully")
@@ -52,9 +50,8 @@ def read_community(community_id: int, token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=500, detail="Error getting community")
 
 @app.post("/communities/")
-def create_community(community: CommunityCreate, token: str = Depends(oauth2_scheme)):
+def create_community(community: CommunityCreate, current_user: dict = Depends(get_current_user)):
     try:
-        current_user = get_current_user(token)
         existing_community = community_service.get_community(community.community_id)
         if existing_community:
             logger.error(f"Community ID {community.community_id} already exists")
@@ -67,9 +64,8 @@ def create_community(community: CommunityCreate, token: str = Depends(oauth2_sch
         raise HTTPException(status_code=500, detail="Error creating community")
 
 @app.put("/communities/{community_id}")
-def update_community(community_id: int, community: CommunityUpdate, token: str = Depends(oauth2_scheme)):
+def update_community(community_id: int, community: CommunityUpdate, current_user: dict = Depends(get_current_user)):
     try:
-        current_user = get_current_user(token)
         existing_community = community_service.get_community(community_id)
         if not existing_community:
             logger.error(f"Community {community_id} not found")
@@ -82,9 +78,8 @@ def update_community(community_id: int, community: CommunityUpdate, token: str =
         raise HTTPException(status_code=500, detail="Error updating community")
 
 @app.delete("/communities/{community_id}")
-def delete_community(community_id: int, token: str = Depends(oauth2_scheme)):
+def delete_community(community_id: int, current_user: dict = Depends(get_current_user)):
     try:
-        current_user = get_current_user(token)
         community = community_service.get_community(community_id)
         if not community:
             logger.error(f"Community {community_id} not found")
