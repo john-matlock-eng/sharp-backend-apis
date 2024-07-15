@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Cognito settings
-COGNITO_REGION = os.getenv('AWS_REGION')
+COGNITO_REGION = os.getenv('COGNITO_REGION')
 USER_POOL_ID = os.getenv('USER_POOL_ID')
 APP_CLIENT_ID = os.getenv('APP_CLIENT_ID')
 COGNITO_JWKS_URL = f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
