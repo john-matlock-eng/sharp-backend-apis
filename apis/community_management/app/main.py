@@ -67,7 +67,16 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
         if existing_community:
             logger.error(f"Community ID {community.community_id} already exists")
             raise HTTPException(status_code=400, detail="Community ID already exists")
-        community_service.create_community(str(community.community_id), community.name)
+        
+        new_community = {
+            "community_id": str(community.community_id),
+            "name": community.name,
+            "description": community.description,
+            "owner_id": community.owner_id,
+            "members": community.members,
+            "keywords": community.keywords
+        }
+        community_service.create_community(new_community)
         logger.info(f"Community {community.community_id} created successfully")
         return {"message": "Community created successfully"}
     except ClientError as e:
@@ -81,7 +90,14 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
         if not existing_community:
             logger.error(f"Community {community_id} not found")
             raise HTTPException(status_code=404, detail="Community not found")
-        community_service.update_community(str(community_id), community.name)
+        
+        updated_community = {
+            "name": community.name,
+            "description": community.description,
+            "members": community.members,
+            "keywords": community.keywords
+        }
+        community_service.update_community(str(community_id), updated_community)
         logger.info(f"Community {community_id} updated successfully")
         return {"message": "Community updated successfully"}
     except ClientError as e:
@@ -102,5 +118,4 @@ def delete_community(community_id: UUID4, current_user: dict = Depends(get_curre
         logger.error(f"Error deleting community: {e}")
         raise HTTPException(status_code=500, detail="Error deleting community")
 
-# Create a handler for AWS Lambda
 handler = Mangum(app)
