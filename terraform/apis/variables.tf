@@ -14,3 +14,15 @@ variable "api_name" {
   type        = string
   default     = ""
 }
+
+variable "cognito_user_pool_id" {
+  description = "Cognito User Pool ID"
+  type        = string
+  default     = ""
+}
+
+variable "cognito_user_pool_client_id" {
+  description = "Cognito User Pool Client ID"
+  type        = string
+  default     = ""
+}

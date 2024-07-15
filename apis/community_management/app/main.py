@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from mangum import Mangum
+from app.services.cognito_service import get_current_user, CognitoService
 from app.services.community_service import CommunityService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community import CommunityCreate, CommunityUpdate
@@ -24,7 +25,7 @@ def read_root():
     return {"message": "Welcome to the Community Management API"}
 
 @app.get("/communities/")
-def list_communities():
+def list_communities(current_user: dict = Depends(get_current_user)):
     try:
         communities = community_service.list_communities()
         return {"communities": communities}
@@ -33,7 +34,7 @@ def list_communities():
         raise HTTPException(status_code=500, detail="Error listing communities")
 
 @app.get("/communities/{community_id}")
-def read_community(community_id: int):
+def read_community(community_id: int, current_user: dict = Depends(get_current_user)):
     try:
         community = community_service.get_community(community_id)
         if community:
@@ -46,7 +47,7 @@ def read_community(community_id: int):
         raise HTTPException(status_code=500, detail="Error getting community")
 
 @app.post("/communities/")
-def create_community(community: CommunityCreate):
+def create_community(community: CommunityCreate, current_user: dict = Depends(get_current_user)):
     try:
         existing_community = community_service.get_community(community.community_id)
         if existing_community:
@@ -74,7 +75,7 @@ def update_community(community_id: int, community: CommunityUpdate):
         raise HTTPException(status_code=500, detail="Error updating community")
 
 @app.delete("/communities/{community_id}")
-def delete_community(community_id: int):
+def delete_community(community_id: int, current_user: dict = Depends(get_current_user)):
     try:
         community = community_service.get_community(community_id)
         if not community:
