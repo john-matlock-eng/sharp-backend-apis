@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import OAuth2PasswordBearer
 from mangum import Mangum
 from app.services.cognito_service import get_current_user
 from app.services.community_service import CommunityService
@@ -11,6 +12,8 @@ from botocore.exceptions import ClientError
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"https://your_cognito_domain/oauth2/token")
 
 app = FastAPI()
 
@@ -25,7 +28,7 @@ def read_root():
     return {"message": "Welcome to the Community Management API"}
 
 @app.get("/communities/")
-def list_communities(token: str):
+def list_communities(token: str = Depends(oauth2_scheme)):
     try:
         current_user = get_current_user(token)
         communities = community_service.list_communities()
@@ -35,7 +38,7 @@ def list_communities(token: str):
         raise HTTPException(status_code=500, detail="Error listing communities")
 
 @app.get("/communities/{community_id}")
-def read_community(community_id: int, token: str):
+def read_community(community_id: int, token: str = Depends(oauth2_scheme)):
     try:
         current_user = get_current_user(token)
         community = community_service.get_community(community_id)
@@ -49,7 +52,7 @@ def read_community(community_id: int, token: str):
         raise HTTPException(status_code=500, detail="Error getting community")
 
 @app.post("/communities/")
-def create_community(community: CommunityCreate, token: str):
+def create_community(community: CommunityCreate, token: str = Depends(oauth2_scheme)):
     try:
         current_user = get_current_user(token)
         existing_community = community_service.get_community(community.community_id)
@@ -64,7 +67,7 @@ def create_community(community: CommunityCreate, token: str):
         raise HTTPException(status_code=500, detail="Error creating community")
 
 @app.put("/communities/{community_id}")
-def update_community(community_id: int, community: CommunityUpdate, token: str):
+def update_community(community_id: int, community: CommunityUpdate, token: str = Depends(oauth2_scheme)):
     try:
         current_user = get_current_user(token)
         existing_community = community_service.get_community(community_id)
@@ -79,7 +82,7 @@ def update_community(community_id: int, community: CommunityUpdate, token: str):
         raise HTTPException(status_code=500, detail="Error updating community")
 
 @app.delete("/communities/{community_id}")
-def delete_community(community_id: int, token: str):
+def delete_community(community_id: int, token: str = Depends(oauth2_scheme)):
     try:
         current_user = get_current_user(token)
         community = community_service.get_community(community_id)
