@@ -2,14 +2,14 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from mangum import Mangum
-from app.services.cognito_service import get_current_user
-from app.services.community_service import CommunityService
-from app.lib.dynamodb_controller import DynamoDBController
-from app.models.community import CommunityCreate, CommunityUpdate
 from pydantic import UUID4
 import os
 import logging
 from botocore.exceptions import ClientError
+from app.services.cognito_service import get_current_user
+from app.services.community_service import CommunityService
+from app.lib.dynamodb_controller import DynamoDBController
+from app.models.community import CommunityCreate, CommunityUpdate
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
