@@ -21,7 +21,7 @@ class CommunityService:
     def get_community(self, community_id):
         try:
             self.logger.info(f"Fetching community with ID: {community_id}")
-            key = {"community_id": community_id}
+            key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
             return self.dynamodb_controller.get_item(key)
         except ClientError as e:
             self.logger.error(f"DynamoDB client error: {e}")
@@ -33,7 +33,7 @@ class CommunityService:
     def update_community(self, community_id, update_data):
         try:
             self.logger.info(f"Updating community with ID: {community_id}")
-            key = {"community_id": community_id}
+            key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
             update_expression = "set " + ", ".join(f"{k}=:{k}" for k in update_data.keys())
             expression_attribute_values = {f":{k}": v for k, v in update_data.items()}
             self.dynamodb_controller.update_item(key, update_expression, expression_attribute_values)
@@ -48,7 +48,7 @@ class CommunityService:
     def delete_community(self, community_id):
         try:
             self.logger.info(f"Deleting community with ID: {community_id}")
-            key = {"community_id": community_id}
+            key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
             self.dynamodb_controller.delete_item(key)
             self.logger.info("Community deleted successfully")
         except ClientError as e:
