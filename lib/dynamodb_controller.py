@@ -64,3 +64,16 @@ class DynamoDBController:
         except Exception as e:
             self.logger.error(f"Unexpected error while deleting item from DynamoDB table: {e}")
             raise
+
+    def scan_table(self):
+        try:
+            self.logger.info("Scanning DynamoDB table for all items")
+            response = self.table.scan()
+            self.logger.info("Table scan completed successfully")
+            return response
+        except ClientError as e:
+            self.logger.error(f"DynamoDB client error: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Unexpected error while scanning DynamoDB table: {e}")
+            raise

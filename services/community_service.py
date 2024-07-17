@@ -57,3 +57,17 @@ class CommunityService:
         except Exception as e:
             self.logger.error(f"Unexpected error while deleting community: {e}")
             raise
+
+    def list_communities(self):
+        try:
+            self.logger.info("Listing all communities")
+            response = self.dynamodb_controller.scan_table()
+            communities = response.get('Items', [])
+            self.logger.info("Communities listed successfully")
+            return communities
+        except ClientError as e:
+            self.logger.error(f"DynamoDB client error: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Unexpected error while listing communities: {e}")
+            raise
