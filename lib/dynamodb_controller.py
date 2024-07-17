@@ -1,6 +1,8 @@
 import boto3
 import logging
 from botocore.exceptions import ClientError
+from boto3.dynamodb.conditions import Key
+
 
 class DynamoDBController:
     def __init__(self, table_name):
@@ -63,4 +65,19 @@ class DynamoDBController:
             raise
         except Exception as e:
             self.logger.error(f"Unexpected error while deleting item from DynamoDB table: {e}")
+            raise
+
+    def scan_table(self, item_type):
+        try:
+            self.logger.info(f"Scanning DynamoDB table for items of type: {item_type}")
+            response = self.table.scan(
+                FilterExpression=Key('PK').begins_with(f"{item_type}#")
+            )
+            self.logger.info("Table scan completed successfully")
+            return response
+        except ClientError as e:
+            self.logger.error(f"DynamoDB client error: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Unexpected error while scanning DynamoDB table: {e}")
             raise
