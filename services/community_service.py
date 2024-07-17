@@ -61,7 +61,7 @@ class CommunityService:
     def list_communities(self):
         try:
             self.logger.info("Listing all communities")
-            response = self.dynamodb_controller.scan_table()
+            response = self.dynamodb_controller.scan_table("COMMUNITY")
             communities = response.get('Items', [])
             self.logger.info("Communities listed successfully")
             return communities
