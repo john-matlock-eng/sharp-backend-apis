@@ -81,6 +81,8 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
             raise HTTPException(status_code=400, detail="Community ID already exists")
 
         new_community = {
+            "PK": f"COMMUNITY#{community.community_id}",
+            "SK": f"METADATA#{community.community_id}",
             "community_id": str(community.community_id),
             "name": community.name,
             "description": community.description,
@@ -115,7 +117,10 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
             "members": community.members,
             "keywords": community.keywords
         }
-        community_service.update_community(str(community_id), updated_community)
+        key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
+        update_expression = "set " + ", ".join(f"{k}=:{k}" for k in updated_community.keys())
+        expression_attribute_values = {f":{k}": v for k, v in updated_community.items()}
+        community_service.update_community(key, update_expression, expression_attribute_values)
         logger.info(f"Community {community_id} updated successfully")
         return {"message": "Community updated successfully"}
     except ClientError as e:
@@ -133,7 +138,8 @@ def delete_community(community_id: UUID4, current_user: dict = Depends(get_curre
         if not community:
             logger.error(f"Community {community_id} not found")
             raise HTTPException(status_code=404, detail="Community not found")
-        community_service.delete_community(str(community_id))
+        key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
+        community_service.delete_community(key)
         logger.info(f"Community {community_id} deleted successfully")
         return {"message": "Community deleted successfully"}
     except ClientError as e:
