@@ -1,11 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
-from app.services.user_service import UserService
-from app.lib.dynamodb_controller import DynamoDBController
+from pydantic import UUID4
 import os
 import logging
 from botocore.exceptions import ClientError
+from app.services.user_service import UserService
+from app.lib.dynamodb_controller import DynamoDBController
+from app.models.user_schema import UserCreate, UserUpdate
+from app.models.user_model import UserModel
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -29,13 +32,29 @@ user_service = UserService(dynamodb_controller)
 
 @app.get("/")
 def read_root():
+    """Root endpoint to check API status.
+
+    Returns:
+        dict: Welcome message.
+    """
     logger.info("Root endpoint called")
     return {"message": "Welcome to the User Management API"}
 
 @app.get("/users/{user_id}")
-def read_user(user_id: int):
+def read_user(user_id: UUID4):
+    """Read a user by its ID.
+
+    Args:
+        user_id (UUID4): ID of the user to read.
+
+    Returns:
+        dict: The user model.
+
+    Raises:
+        HTTPException: If the user is not found or if there is an error.
+    """
     try:
-        user = user_service.get_user(user_id)
+        user = user_service.get_user(str(user_id))
         if user:
             logger.info(f"User {user_id} retrieved successfully")
             return user
@@ -44,48 +63,94 @@ def read_user(user_id: int):
     except ClientError as e:
         logger.error(f"Error getting user: {e}")
         raise HTTPException(status_code=500, detail="Error getting user")
+    except Exception as e:
+        logger.error(f"Unexpected error getting user: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.post("/users/")
-def create_user(user_id: int, name: str):
+def create_user(user: UserCreate):
+    """Create a new user.
+
+    Args:
+        user (UserCreate): User creation data.
+
+    Returns:
+        dict: Success message.
+
+    Raises:
+        HTTPException: If there is an error creating the user.
+    """
     try:
-        existing_user = user_service.get_user(user_id)
+        existing_user = user_service.get_user(str(user.user_id))
         if existing_user:
-            logger.error(f"User ID {user_id} already exists")
+            logger.error(f"User ID {user.user_id} already exists")
             raise HTTPException(status_code=400, detail="User ID already exists")
-        user_service.create_user(user_id, name)
-        logger.info(f"User {user_id} created successfully")
+        user_service.create_user(user)
+        logger.info(f"User {user.user_id} created successfully")
         return {"message": "User created successfully"}
     except ClientError as e:
         logger.error(f"Error creating user: {e}")
         raise HTTPException(status_code=500, detail="Error creating user")
+    except Exception as e:
+        logger.error(f"Unexpected error creating user: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.put("/users/{user_id}")
-def update_user(user_id: int, name: str = None):
+def update_user(user_id: UUID4, user: UserUpdate):
+    """Update a user by its ID.
+
+    Args:
+        user_id (UUID4): ID of the user to update.
+        user (UserUpdate): User update data.
+
+    Returns:
+        dict: Success message.
+
+    Raises:
+        HTTPException: If the user is not found or if there is an error updating the user.
+    """
     try:
-        user = user_service.get_user(user_id)
-        if not user:
+        existing_user = user_service.get_user(str(user_id))
+        if not existing_user:
             logger.error(f"User {user_id} not found")
             raise HTTPException(status_code=404, detail="User not found")
-        user_service.update_user(user_id, name)
+        user_service.update_user(str(user_id), user)
         logger.info(f"User {user_id} updated successfully")
         return {"message": "User updated successfully"}
     except ClientError as e:
         logger.error(f"Error updating user: {e}")
         raise HTTPException(status_code=500, detail="Error updating user")
+    except Exception as e:
+        logger.error(f"Unexpected error updating user: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.delete("/users/{user_id}")
-def delete_user(user_id: int):
+def delete_user(user_id: UUID4):
+    """Delete a user by its ID.
+
+    Args:
+        user_id (UUID4): ID of the user to delete.
+
+    Returns:
+        dict: Success message.
+
+    Raises:
+        HTTPException: If the user is not found or if there is an error deleting the user.
+    """
     try:
-        user = user_service.get_user(user_id)
-        if not user:
+        existing_user = user_service.get_user(str(user_id))
+        if not existing_user:
             logger.error(f"User {user_id} not found")
             raise HTTPException(status_code=404, detail="User not found")
-        user_service.delete_user(user_id)
+        user_service.delete_user(str(user_id))
         logger.info(f"User {user_id} deleted successfully")
         return {"message": "User deleted successfully"}
     except ClientError as e:
         logger.error(f"Error deleting user: {e}")
         raise HTTPException(status_code=500, detail="Error deleting user")
+    except Exception as e:
+        logger.error(f"Unexpected error deleting user: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # Create a handler for AWS Lambda
 handler = Mangum(app)
