@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from mangum import Mangum
 from pydantic import UUID4
 import os
@@ -8,7 +9,6 @@ from botocore.exceptions import ClientError
 from app.services.user_service import UserService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.user_schema import UserCreate, UserUpdate
-from app.models.user_model import UserModel
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)

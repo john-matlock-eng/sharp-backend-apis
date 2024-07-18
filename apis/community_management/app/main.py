@@ -6,11 +6,9 @@ from pydantic import UUID4
 import os
 import logging
 from botocore.exceptions import ClientError
-from app.services.cognito_service import get_current_user
 from app.services.community_service import CommunityService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
-from app.models.community_model import CommunityModel
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -59,7 +57,7 @@ def list_communities(current_user: dict = Depends(get_current_user)):
     """
     try:
         logger.info("Received request to list communities")
-        communities = community_service.list_communities(CommunityModel)
+        communities = community_service.list_communities()
         logger.info("Communities listed successfully")
         return {"communities": communities}
     except ClientError as e:
@@ -85,7 +83,7 @@ def read_community(community_id: UUID4, current_user: dict = Depends(get_current
     """
     try:
         logger.info(f"Received request to read community with ID: {community_id}")
-        community = community_service.get_community(CommunityModel, str(community_id))
+        community = community_service.get_community(str(community_id))
         if community:
             logger.info(f"Community {community_id} retrieved successfully")
             return community
@@ -116,22 +114,12 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
         logger.info(f"Received request to create community with ID: {community.community_id}")
         logger.debug(f"Community data: {community}")
 
-        existing_community = community_service.get_community(CommunityModel, str(community.community_id))
+        existing_community = community_service.get_community(str(community.community_id))
         if existing_community:
             logger.error(f"Community ID {community.community_id} already exists")
             raise HTTPException(status_code=400, detail="Community ID already exists")
 
-        new_community = {
-            "PK": f"COMMUNITY#{community.community_id}",
-            "SK": f"METADATA#{community.community_id}",
-            "community_id": str(community.community_id),
-            "name": community.name,
-            "description": community.description,
-            "owner_ids": community.owner_ids,
-            "members": community.members,
-            "keywords": community.keywords
-        }
-        community_service.create_community(new_community)
+        community_service.create_community(community)
         logger.info(f"Community {community.community_id} created successfully")
         return {"message": "Community created successfully"}
     except ClientError as e:
@@ -160,18 +148,12 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
         logger.info(f"Received request to update community with ID: {community_id}")
         logger.debug(f"Update data: {community}")
 
-        existing_community = community_service.get_community(CommunityModel, str(community_id))
+        existing_community = community_service.get_community(str(community_id))
         if not existing_community:
             logger.error(f"Community {community_id} not found")
             raise HTTPException(status_code=404, detail="Community not found")
 
-        updated_community = {
-            "name": community.name,
-            "description": community.description,
-            "members": community.members,
-            "keywords": community.keywords
-        }
-        community_service.update_community(CommunityModel, str(community_id), updated_community)
+        community_service.update_community(str(community_id), community)
         logger.info(f"Community {community_id} updated successfully")
         return {"message": "Community updated successfully"}
     except ClientError as e:
@@ -197,11 +179,11 @@ def delete_community(community_id: UUID4, current_user: dict = Depends(get_curre
     """
     try:
         logger.info(f"Received request to delete community with ID: {community_id}")
-        community = community_service.get_community(CommunityModel, str(community_id))
+        community = community_service.get_community(str(community_id))
         if not community:
             logger.error(f"Community {community_id} not found")
             raise HTTPException(status_code=404, detail="Community not found")
-        community_service.delete_community(CommunityModel, str(community_id))
+        community_service.delete_community(str(community_id))
         logger.info(f"Community {community_id} deleted successfully")
         return {"message": "Community deleted successfully"}
     except ClientError as e:
@@ -228,13 +210,7 @@ def add_owners(community_id: UUID4, owner: OwnerAdd, current_user: dict = Depend
     """
     try:
         logger.info(f"Received request to add owner to community with ID: {community_id}")
-        owner_item = {
-            "PK": f"COMMUNITY#{community_id}",
-            "SK": f"OWNER#{owner.user_id}",
-            "user_id": owner.user_id,
-            "role": owner.role
-        }
-        community_service.add_owner(owner_item)
+        community_service.add_owner(str(community_id), owner)
         logger.info(f"Owner {owner.user_id} added to community {community_id} successfully")
         return {"message": "Owner added successfully"}
     except ClientError as e:
@@ -261,7 +237,7 @@ def remove_owners(community_id: UUID4, user_id: UUID4, current_user: dict = Depe
     """
     try:
         logger.info(f"Received request to remove owner {user_id} from community {community_id}")
-        community_service.remove_owner(OwnerModel, str(community_id), str(user_id))
+        community_service.remove_owner(str(community_id), str(user_id))
         logger.info(f"Owner {user_id} removed from community {community_id} successfully")
         return {"message": "Owner removed successfully"}
     except ClientError as e:
@@ -288,13 +264,7 @@ def add_members(community_id: UUID4, member: MemberAdd, current_user: dict = Dep
     """
     try:
         logger.info(f"Received request to add member to community with ID: {community_id}")
-        member_item = {
-            "PK": f"COMMUNITY#{community_id}",
-            "SK": f"MEMBER#{member.user_id}",
-            "user_id": member.user_id,
-            "role": member.role
-        }
-        community_service.add_member(member_item)
+        community_service.add_member(str(community_id), member)
         logger.info(f"Member {member.user_id} added to community {community_id} successfully")
         return {"message": "Member added successfully"}
     except ClientError as e:
@@ -321,7 +291,7 @@ def remove_members(community_id: UUID4, user_id: UUID4, current_user: dict = Dep
     """
     try:
         logger.info(f"Received request to remove member {user_id} from community {community_id}")
-        community_service.remove_member(MemberModel, str(community_id), str(user_id))
+        community_service.remove_member(str(community_id), str(user_id))
         logger.info(f"Member {user_id} removed from community {community_id} successfully")
         return {"message": "Member removed successfully"}
     except ClientError as e:
@@ -331,4 +301,5 @@ def remove_members(community_id: UUID4, user_id: UUID4, current_user: dict = Dep
         logger.error(f"Unexpected error removing member: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+# Create a handler for AWS Lambda
 handler = Mangum(app)

@@ -1,8 +1,8 @@
 import logging
 from functools import wraps
+from typing import Type, List, Dict, Any, Optional, Tuple
 from pynamodb.exceptions import PynamoDBException
 from pynamodb.models import Model
-from typing import Type, List, Dict, Any, Optional, Tuple
 
 class DynamoDBController:
     def __init__(self, table_name: str):
@@ -11,9 +11,7 @@ class DynamoDBController:
         self.logger.setLevel(logging.INFO)
 
     def log_and_handle_exceptions(method):
-        """
-        Decorator for logging method calls and handling exceptions.
-        """
+        """Decorator for logging method calls and handling exceptions."""
         @wraps(method)
         def wrapper(self, *args, **kwargs):
             try:
@@ -30,32 +28,24 @@ class DynamoDBController:
         return wrapper
 
     def _validate_model_class(self, model_class: Type[Model]) -> None:
-        """
-        Validate the model class.
-        """
+        """Validate the model class."""
         if not issubclass(model_class, Model):
             raise ValueError(f"{model_class} is not a subclass of pynamodb.models.Model")
 
     def _validate_item(self, item: Model) -> None:
-        """
-        Validate the item.
-        """
+        """Validate the item."""
         if not isinstance(item, Model):
             raise ValueError("item must be an instance of pynamodb.models.Model")
         if item.table_name != self.table_name:
             raise ValueError(f"item's table name {item.table_name} does not match controller's table name {self.table_name}")
 
     def _validate_key(self, key: str, key_name: str) -> None:
-        """
-        Validate the key.
-        """
+        """Validate the key."""
         if not isinstance(key, str) or not key:
             raise ValueError(f"{key_name} must be a non-empty string")
 
     def _validate_update_data(self, update_data: Dict[str, Any]) -> None:
-        """
-        Validate the update data.
-        """
+        """Validate the update data."""
         if not isinstance(update_data, dict) or not update_data:
             raise ValueError("update_data must be a non-empty dictionary")
         for key, value in update_data.items():
@@ -66,23 +56,25 @@ class DynamoDBController:
 
     @log_and_handle_exceptions
     def put_item(self, item: Model) -> None:
-        """
-        Save an item to the DynamoDB table.
+        """Save an item to the DynamoDB table.
 
-        :param item: The item to save.
+        Args:
+            item (Model): The item to save.
         """
         self._validate_item(item)
         item.save()
 
     @log_and_handle_exceptions
     def get_item(self, model_class: Type[Model], pk: str, sk: str) -> Optional[Model]:
-        """
-        Retrieve an item from the DynamoDB table.
+        """Retrieve an item from the DynamoDB table.
 
-        :param model_class: The model class of the item.
-        :param pk: The partition key of the item.
-        :param sk: The sort key of the item.
-        :return: The retrieved item or None if not found.
+        Args:
+            model_class (Type[Model]): The model class of the item.
+            pk (str): The partition key of the item.
+            sk (str): The sort key of the item.
+
+        Returns:
+            Optional[Model]: The retrieved item or None if not found.
         """
         self._validate_model_class(model_class)
         self._validate_key(pk, "Partition key")
@@ -96,13 +88,13 @@ class DynamoDBController:
 
     @log_and_handle_exceptions
     def update_item(self, model_class: Type[Model], pk: str, sk: str, update_data: Dict[str, Any]) -> None:
-        """
-        Update an item in the DynamoDB table.
+        """Update an item in the DynamoDB table.
 
-        :param model_class: The model class of the item.
-        :param pk: The partition key of the item.
-        :param sk: The sort key of the item.
-        :param update_data: A dictionary of attributes to update.
+        Args:
+            model_class (Type[Model]): The model class of the item.
+            pk (str): The partition key of the item.
+            sk (str): The sort key of the item.
+            update_data (Dict[str, Any]): A dictionary of attributes to update.
         """
         self._validate_model_class(model_class)
         self._validate_key(pk, "Partition key")
@@ -116,12 +108,12 @@ class DynamoDBController:
 
     @log_and_handle_exceptions
     def delete_item(self, model_class: Type[Model], pk: str, sk: str) -> None:
-        """
-        Delete an item from the DynamoDB table.
+        """Delete an item from the DynamoDB table.
 
-        :param model_class: The model class of the item.
-        :param pk: The partition key of the item.
-        :param sk: The sort key of the item.
+        Args:
+            model_class (Type[Model]): The model class of the item.
+            pk (str): The partition key of the item.
+            sk (str): The sort key of the item.
         """
         self._validate_model_class(model_class)
         self._validate_key(pk, "Partition key")
@@ -132,31 +124,33 @@ class DynamoDBController:
 
     @log_and_handle_exceptions
     def query_with_pagination(self, model_class: Type[Model], key_condition_expression: Any, filter_expression: Optional[Any] = None, index_name: Optional[str] = None, limit: int = 20, last_evaluated_key: Optional[Dict[str, Any]] = None) -> Tuple[List[Model], Optional[Dict[str, Any]]]:
-        """
-        Query items in the DynamoDB table with pagination.
+        """Query items in the DynamoDB table with pagination.
 
-        :param model_class: The model class of the items.
-        :param key_condition_expression: The key condition expression for the query.
-        :param filter_expression: Optional filter expression for the query.
-        :param index_name: Optional index name for the query.
-        :param limit: The maximum number of items to retrieve.
-        :param last_evaluated_key: The last evaluated key for pagination.
-        :return: A tuple containing the list of retrieved items and the last evaluated key.
+        Args:
+            model_class (Type[Model]): The model class of the items.
+            key_condition_expression (Any): The key condition expression for the query.
+            filter_expression (Optional[Any]): Optional filter expression for the query.
+            index_name (Optional[str]): Optional index name for the query.
+            limit (int): The maximum number of items to retrieve.
+            last_evaluated_key (Optional[Dict[str, Any]]): The last evaluated key for pagination.
+
+        Returns:
+            Tuple[List[Model], Optional[Dict[str, Any]]]: A tuple containing the list of retrieved items and the last evaluated key.
         """
         self._validate_model_class(model_class)
         if limit <= 0:
             raise ValueError("Limit must be a positive integer")
 
         query_params = {
-            'KeyConditionExpression': key_condition_expression,
-            'Limit': limit
+            'key_condition_expression': key_condition_expression,
+            'limit': limit
         }
         if filter_expression:
-            query_params['FilterExpression'] = filter_expression
+            query_params['filter_expression'] = filter_expression
         if index_name:
-            query_params['IndexName'] = index_name
+            query_params['index_name'] = index_name
         if last_evaluated_key:
-            query_params['ExclusiveStartKey'] = last_evaluated_key
+            query_params['exclusive_start_key'] = last_evaluated_key
 
         response = model_class.query(**query_params)
         items = list(response)
@@ -165,26 +159,28 @@ class DynamoDBController:
 
     @log_and_handle_exceptions
     def scan_with_pagination(self, model_class: Type[Model], filter_expression: Optional[Any] = None, limit: int = 20, last_evaluated_key: Optional[Dict[str, Any]] = None) -> Tuple[List[Model], Optional[Dict[str, Any]]]:
-        """
-        Scan items in the DynamoDB table with pagination.
+        """Scan items in the DynamoDB table with pagination.
 
-        :param model_class: The model class of the items.
-        :param filter_expression: Optional filter expression for the scan.
-        :param limit: The maximum number of items to retrieve.
-        :param last_evaluated_key: The last evaluated key for pagination.
-        :return: A tuple containing the list of retrieved items and the last evaluated key.
+        Args:
+            model_class (Type[Model]): The model class of the items.
+            filter_expression (Optional[Any]): Optional filter expression for the scan.
+            limit (int): The maximum number of items to retrieve.
+            last_evaluated_key (Optional[Dict[str, Any]]): The last evaluated key for pagination.
+
+        Returns:
+            Tuple[List[Model], Optional[Dict[str, Any]]]: A tuple containing the list of retrieved items and the last evaluated key.
         """
         self._validate_model_class(model_class)
         if limit <= 0:
             raise ValueError("Limit must be a positive integer")
 
         scan_params = {
-            'Limit': limit
+            'limit': limit
         }
         if filter_expression:
-            scan_params['FilterExpression'] = filter_expression
+            scan_params['filter_expression'] = filter_expression
         if last_evaluated_key:
-            scan_params['ExclusiveStartKey'] = last_evaluated_key
+            scan_params['exclusive_start_key'] = last_evaluated_key
 
         response = model_class.scan(**scan_params)
         items = list(response)
@@ -193,10 +189,10 @@ class DynamoDBController:
 
     @log_and_handle_exceptions
     def batch_write(self, items: List[Model]) -> None:
-        """
-        Perform a batch write of items to the DynamoDB table.
+        """Perform a batch write of items to the DynamoDB table.
 
-        :param items: The list of items to write.
+        Args:
+            items (List[Model]): The list of items to write.
         """
         if not items:
             raise ValueError("Items list cannot be empty")
@@ -209,12 +205,14 @@ class DynamoDBController:
 
     @log_and_handle_exceptions
     def batch_get(self, model_class: Type[Model], keys: List[Dict[str, Any]]) -> List[Model]:
-        """
-        Perform a batch get of items from the DynamoDB table.
+        """Perform a batch get of items from the DynamoDB table.
 
-        :param model_class: The model class of the items.
-        :param keys: The list of keys of the items to retrieve.
-        :return: A list of retrieved items.
+        Args:
+            model_class (Type[Model]): The model class of the items.
+            keys (List[Dict[str, Any]]): The list of keys of the items to retrieve.
+
+        Returns:
+            List[Model]: A list of retrieved items.
         """
         self._validate_model_class(model_class)
         if not keys:
