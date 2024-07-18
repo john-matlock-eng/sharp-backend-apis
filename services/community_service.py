@@ -5,7 +5,7 @@ from pynamodb.models import Model
 from pynamodb.exceptions import PynamoDBException
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
-from app.models.community_model import CommunityModel  # Import the CommunityModel
+from app.models.community_model import CommunityModel
 
 class CommunityService:
     """Service class for managing community operations."""

@@ -151,7 +151,14 @@ class DynamoDBController:
         if last_evaluated_key:
             query_params['exclusive_start_key'] = last_evaluated_key
 
-        response = model_class.query(key_condition_expression, **query_params)
+        # Handle BeginsWith condition
+        if hasattr(key_condition_expression, 'attribute') and hasattr(key_condition_expression, 'startswith_value'):
+            query_params['hash_key'] = key_condition_expression.attribute 
+            query_params['range_key_condition'] = model_class.SK.startswith(key_condition_expression.startswith_value)
+        else:
+            query_params['key_condition_expression'] = key_condition_expression
+
+        response = model_class.query(**query_params)
         items = list(response)
         last_evaluated_key = response.last_evaluated_key
         return items, last_evaluated_key
