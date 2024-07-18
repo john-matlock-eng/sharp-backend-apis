@@ -138,7 +138,7 @@ class CommunityService:
         key_condition_expression = CommunityModel.PK.startswith("COMMUNITY#")
         items, _ = self.dynamodb_controller.query_with_pagination(
             CommunityModel, 
-            key_condition_expression=key_condition_expression
+            key_condition_expression
         )
         return items
 

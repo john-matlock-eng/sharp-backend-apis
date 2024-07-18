@@ -142,7 +142,6 @@ class DynamoDBController:
             raise ValueError("Limit must be a positive integer")
 
         query_params = {
-            'key_condition_expression': key_condition_expression,
             'limit': limit
         }
         if filter_expression:
@@ -152,7 +151,7 @@ class DynamoDBController:
         if last_evaluated_key:
             query_params['exclusive_start_key'] = last_evaluated_key
 
-        response = model_class.query(**query_params)
+        response = model_class.query(key_condition_expression, **query_params)
         items = list(response)
         last_evaluated_key = response.last_evaluated_key
         return items, last_evaluated_key
