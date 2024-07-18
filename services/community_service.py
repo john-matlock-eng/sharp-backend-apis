@@ -6,6 +6,7 @@ from pynamodb.models import Model
 from pynamodb.exceptions import PynamoDBException
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate
+from app.models.community_model import CommunityModel  # Import the CommunityModel
 
 class CommunityService:
     """Service class for managing community operations."""
@@ -144,7 +145,7 @@ class CommunityService:
         self.dynamodb_controller.delete_item(model_class, pk, sk)
 
     @log_and_handle_exceptions
-    def list_communities(self, model_class: Type[Model]) -> List[Model]:
+    def list_communities(self, model_class: Type[Model] = CommunityModel) -> List[Model]:
         """Lists all communities.
 
         Args:
