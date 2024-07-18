@@ -10,7 +10,7 @@ from app.services.cognito_service import get_current_user
 from app.services.community_service import CommunityService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
-from app.models.community_model import CommunityModel  # Import the CommunityModel
+from app.models.community_model import CommunityModel
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
