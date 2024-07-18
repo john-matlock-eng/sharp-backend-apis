@@ -15,12 +15,12 @@ resource "aws_dynamodb_table" "sharp_app_data" {
   }
 
   attribute {
-    name = "UserId"
+    name = "EntityType"
     type = "S"
   }
 
   attribute {
-    name = "CommunityId"
+    name = "Owner_ID"
     type = "S"
   }
 
@@ -30,16 +30,23 @@ resource "aws_dynamodb_table" "sharp_app_data" {
   }
 
   global_secondary_index {
-    name            = "UserId-Index"
-    hash_key        = "UserId"
+    name            = "GSI1"
+    hash_key        = "SK"
+    range_key       = "PK"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "GSI2"
+    hash_key        = "Owner_ID"
     range_key       = "CreatedAt"
     projection_type = "ALL"
   }
 
   global_secondary_index {
-    name            = "CommunityId-Index"
-    hash_key        = "CommunityId"
-    range_key       = "SK"
+    name            = "GSI3"
+    hash_key        = "EntityType"
+    range_key       = "CreatedAt"
     projection_type = "ALL"
   }
 
