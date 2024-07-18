@@ -77,7 +77,7 @@ def read_community(community_id: UUID4, current_user: dict = Depends(get_current
         current_user (dict): Current authenticated user.
 
     Returns:
-        Model: The community model.
+        dict: The community model.
 
     Raises:
         HTTPException: If the community is not found or if there is an error.
