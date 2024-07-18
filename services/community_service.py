@@ -142,6 +142,7 @@ class CommunityService:
         )
         return items
 
+
     @log_and_handle_exceptions
     def add_owner(self, community_id: str, owner: OwnerAdd) -> None:
         """Adds an owner to a community.
