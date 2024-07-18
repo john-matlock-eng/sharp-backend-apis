@@ -6,7 +6,7 @@ from pynamodb.models import Model
 from pynamodb.exceptions import PynamoDBException
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate
-from app.models.community_model import CommunityModel  # Import the CommunityModel
+from app.models.community_model import CommunityModel
 
 class CommunityService:
     """Service class for managing community operations."""
@@ -86,7 +86,7 @@ class CommunityService:
             "members": community.members,
             "keywords": community.keywords
         }
-        self.dynamodb_controller.put_item(new_community)
+        self.dynamodb_controller.put_item(CommunityModel(**new_community))
 
     @log_and_handle_exceptions
     def get_community(self, model_class: Type[Model], community_id: str) -> Model:
