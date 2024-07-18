@@ -1,73 +1,200 @@
 import logging
+from functools import wraps
+from typing import Type, Dict, Any, List
 from botocore.exceptions import ClientError
+from pynamodb.models import Model
+from pynamodb.exceptions import PynamoDBException
 
 class CommunityService:
-    def __init__(self, dynamodb_controller):
+    def __init__(self, dynamodb_controller: DynamoDBController):
+        """Initializes the CommunityService with a DynamoDBController.
+
+        Args:
+            dynamodb_controller (DynamoDBController): The DynamoDB controller instance.
+        """
         self.dynamodb_controller = dynamodb_controller
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
 
-    def create_community(self, community_data):
-        try:
-            self.logger.info("Creating community")
-            self.dynamodb_controller.put_item(community_data)
-            self.logger.info("Community created successfully")
-        except ClientError as e:
-            self.logger.error(f"DynamoDB client error: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error while creating community: {e}")
-            raise
+    def log_and_handle_exceptions(method):
+        """Decorator for logging method calls and handling exceptions."""
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            try:
+                self.logger.info(f"Calling {method.__name__} with args: {args}, kwargs: {kwargs}")
+                result = method(self, *args, **kwargs)
+                self.logger.info(f"{method.__name__} completed successfully")
+                return result
+            except PynamoDBException as e:
+                self.logger.error(f"DynamoDB error in {method.__name__}: {e}")
+                raise
+            except ClientError as e:
+                self.logger.error(f"Client error in {method.__name__}: {e}")
+                raise
+            except ValueError as e:
+                self.logger.error(f"Validation error in {method.__name__}: {e}")
+                raise
+            except Exception as e:
+                self.logger.error(f"Unexpected error in {method.__name__}: {e}")
+                raise
+        return wrapper
 
-    def get_community(self, community_id):
-        try:
-            self.logger.info(f"Fetching community with ID: {community_id}")
-            key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
-            return self.dynamodb_controller.get_item(key)
-        except ClientError as e:
-            self.logger.error(f"DynamoDB client error: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error while getting community: {e}")
-            raise
+    def _validate_model_class(self, model_class: Type[Model]) -> None:
+        """Validates the model class.
 
-    def update_community(self, community_id, update_data):
-        try:
-            self.logger.info(f"Updating community with ID: {community_id}")
-            key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
-            update_expression = "set " + ", ".join(f"{k}=:{k}" for k in update_data.keys())
-            expression_attribute_values = {f":{k}": v for k, v in update_data.items()}
-            self.dynamodb_controller.update_item(key, update_expression, expression_attribute_values)
-            self.logger.info("Community updated successfully")
-        except ClientError as e:
-            self.logger.error(f"DynamoDB client error: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error while updating community: {e}")
-            raise
+        Args:
+            model_class (Type[Model]): The model class to validate.
 
-    def delete_community(self, community_id):
-        try:
-            self.logger.info(f"Deleting community with ID: {community_id}")
-            key = {"PK": f"COMMUNITY#{community_id}", "SK": f"METADATA#{community_id}"}
-            self.dynamodb_controller.delete_item(key)
-            self.logger.info("Community deleted successfully")
-        except ClientError as e:
-            self.logger.error(f"DynamoDB client error: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error while deleting community: {e}")
-            raise
+        Raises:
+            ValueError: If the model class is not a subclass of pynamodb.models.Model.
+        """
+        if not issubclass(model_class, Model):
+            raise ValueError(f"{model_class} is not a subclass of pynamodb.models.Model")
 
-    def list_communities(self):
-        try:
-            self.logger.info("Listing all communities")
-            response = self.dynamodb_controller.scan_table("COMMUNITY")
-            communities = response.get('Items', [])
-            self.logger.info("Communities listed successfully")
-            return communities
-        except ClientError as e:
-            self.logger.error(f"DynamoDB client error: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error while listing communities: {e}")
-            raise
+    def _validate_key(self, key: str, key_name: str) -> None:
+        """Validates the key.
+
+        Args:
+            key (str): The key to validate.
+            key_name (str): The name of the key being validated.
+
+        Raises:
+            ValueError: If the key is not a non-empty string.
+        """
+        if not isinstance(key, str) or not key:
+            raise ValueError(f"{key_name} must be a non-empty string")
+
+    @log_and_handle_exceptions
+    def create_community(self, community_item: Model) -> None:
+        """Creates a new community.
+
+        Args:
+            community_item (Model): The community item to create.
+        """
+        self.dynamodb_controller.put_item(community_item)
+
+    @log_and_handle_exceptions
+    def get_community(self, model_class: Type[Model], community_id: str) -> Model:
+        """Fetches a community by its ID.
+
+        Args:
+            model_class (Type[Model]): The model class of the community.
+            community_id (str): The ID of the community to fetch.
+
+        Returns:
+            Model: The fetched community item.
+
+        Raises:
+            ValueError: If the community_id is invalid.
+        """
+        self._validate_model_class(model_class)
+        self._validate_key(community_id, "Community ID")
+        pk = f"COMMUNITY#{community_id}"
+        sk = f"METADATA#{community_id}"
+        return self.dynamodb_controller.get_item(model_class, pk, sk)
+
+    @log_and_handle_exceptions
+    def update_community(self, model_class: Type[Model], community_id: str, update_data: Dict[str, Any]) -> None:
+        """Updates a community by its ID.
+
+        Args:
+            model_class (Type[Model]): The model class of the community.
+            community_id (str): The ID of the community to update.
+            update_data (Dict[str, Any]): The data to update in the community.
+
+        Raises:
+            ValueError: If the community_id or update_data is invalid.
+        """
+        self._validate_model_class(model_class)
+        self._validate_key(community_id, "Community ID")
+        pk = f"COMMUNITY#{community_id}"
+        sk = f"METADATA#{community_id}"
+        self.dynamodb_controller.update_item(model_class, pk, sk, update_data)
+
+    @log_and_handle_exceptions
+    def delete_community(self, model_class: Type[Model], community_id: str) -> None:
+        """Deletes a community by its ID.
+
+        Args:
+            model_class (Type[Model]): The model class of the community.
+            community_id (str): The ID of the community to delete.
+
+        Raises:
+            ValueError: If the community_id is invalid.
+        """
+        self._validate_model_class(model_class)
+        self._validate_key(community_id, "Community ID")
+        pk = f"COMMUNITY#{community_id}"
+        sk = f"METADATA#{community_id}"
+        self.dynamodb_controller.delete_item(model_class, pk, sk)
+
+    @log_and_handle_exceptions
+    def list_communities(self, model_class: Type[Model]) -> List[Model]:
+        """Lists all communities.
+
+        Args:
+            model_class (Type[Model]): The model class of the communities.
+
+        Returns:
+            List[Model]: A list of community items.
+        """
+        self._validate_model_class(model_class)
+        key_condition_expression = model_class.PK.startswith("COMMUNITY#")
+        items, _ = self.dynamodb_controller.query_with_pagination(model_class, key_condition_expression)
+        return items
+
+    @log_and_handle_exceptions
+    def add_owner(self, owner_item: Model) -> None:
+        """Adds an owner to a community.
+
+        Args:
+            owner_item (Model): The owner item to add.
+        """
+        self.dynamodb_controller.put_item(owner_item)
+
+    @log_and_handle_exceptions
+    def remove_owner(self, model_class: Type[Model], community_id: str, user_id: str) -> None:
+        """Removes an owner from a community.
+
+        Args:
+            model_class (Type[Model]): The model class of the owner.
+            community_id (str): The ID of the community.
+            user_id (str): The ID of the user to remove as owner.
+
+        Raises:
+            ValueError: If the community_id or user_id is invalid.
+        """
+        self._validate_model_class(model_class)
+        self._validate_key(community_id, "Community ID")
+        self._validate_key(user_id, "User ID")
+        pk = f"COMMUNITY#{community_id}"
+        sk = f"OWNER#{user_id}"
+        self.dynamodb_controller.delete_item(model_class, pk, sk)
+
+    @log_and_handle_exceptions
+    def add_member(self, member_item: Model) -> None:
+        """Adds a member to a community.
+
+        Args:
+            member_item (Model): The member item to add.
+        """
+        self.dynamodb_controller.put_item(member_item)
+
+    @log_and_handle_exceptions
+    def remove_member(self, model_class: Type[Model], community_id: str, user_id: str) -> None:
+        """Removes a member from a community.
+
+        Args:
+            model_class (Type[Model]): The model class of the member.
+            community_id (str): The ID of the community.
+            user_id (str): The ID of the user to remove as member.
+
+        Raises:
+            ValueError: If the community_id or user_id is invalid.
+        """
+        self._validate_model_class(model_class)
+        self._validate_key(community_id, "Community ID")
+        self._validate_key(user_id, "User ID")
+        pk = f"COMMUNITY#{community_id}"
+        sk = f"MEMBER#{user_id}"
+        self.dynamodb_controller.delete_item(model_class, pk, sk)
