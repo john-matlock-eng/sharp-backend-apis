@@ -7,6 +7,7 @@ import os
 import logging
 from botocore.exceptions import ClientError
 from app.services.community_service import CommunityService
+from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
 
