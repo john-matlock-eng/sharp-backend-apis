@@ -113,6 +113,9 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
     """
     try:
         logger.info(f"Received request to create community with ID: {community.community_id}")
+        
+        community.owner_ids = [current_user["sub"]]
+
         logger.debug(f"Community data: {community}")
 
         existing_community = community_service.get_community(str(community.community_id))
