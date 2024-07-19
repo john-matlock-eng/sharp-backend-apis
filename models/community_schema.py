@@ -5,7 +5,6 @@ class CommunityCreate(BaseModel):
     community_id: UUID4
     name: str
     description: str
-    owner_ids: List[str]
     members: List[str]
     keywords: List[str]
 
