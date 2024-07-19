@@ -1,11 +1,9 @@
 import logging
 from functools import wraps
-from typing import Type, Dict, Any, List
-from pynamodb.models import Model
-from pynamodb.exceptions import PynamoDBException
+from typing import Dict, Any, List, Optional
+from boto3.dynamodb.conditions import Key
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
-from app.models.community_model import CommunityModel
 
 class CommunityService:
     """Service class for managing community operations."""
@@ -29,38 +27,10 @@ class CommunityService:
                 result = method(self, *args, **kwargs)
                 self.logger.info(f"{method.__name__} completed successfully")
                 return result
-            except PynamoDBException as e:
-                self.logger.error(f"DynamoDB error in {method.__name__}: {e}")
-                raise
             except Exception as e:
                 self.logger.error(f"Unexpected error in {method.__name__}: {e}")
                 raise
         return wrapper
-
-    def _validate_model_class(self, model_class: Type[Model]) -> None:
-        """Validates the model class.
-
-        Args:
-            model_class (Type[Model]): The model class to validate.
-
-        Raises:
-            ValueError: If the model class is not a subclass of pynamodb.models.Model.
-        """
-        if not issubclass(model_class, Model):
-            raise ValueError(f"{model_class} is not a subclass of pynamodb.models.Model")
-
-    def _validate_key(self, key: str, key_name: str) -> None:
-        """Validates the key.
-
-        Args:
-            key (str): The key to validate.
-            key_name (str): The name of the key being validated.
-
-        Raises:
-            ValueError: If the key is not a non-empty string.
-        """
-        if not isinstance(key, str) or not key:
-            raise ValueError(f"{key_name} must be a non-empty string")
 
     @log_and_handle_exceptions
     def create_community(self, community: CommunityCreate) -> None:
@@ -77,26 +47,25 @@ class CommunityService:
             "description": community.description,
             "owner_ids": community.owner_ids,
             "members": community.members,
-            "keywords": community.keywords
+            "keywords": community.keywords,
+            "EntityType": "community",
+            "CreatedAt": community.created_at
         }
-        self.dynamodb_controller.put_item(CommunityModel(**new_community))
+        self.dynamodb_controller.put_item(new_community)
 
     @log_and_handle_exceptions
-    def get_community(self, community_id: str) -> CommunityModel:
+    def get_community(self, community_id: str) -> Optional[Dict[str, Any]]:
         """Fetches a community by its ID.
 
         Args:
             community_id (str): The ID of the community to fetch.
 
         Returns:
-            CommunityModel: The fetched community item.
-
-        Raises:
-            ValueError: If the community_id is invalid.
+            Optional[Dict[str, Any]]: The fetched community item.
         """
         pk = f"COMMUNITY#{community_id}"
         sk = f"METADATA#{community_id}"
-        return self.dynamodb_controller.get_item(CommunityModel, pk, sk)
+        return self.dynamodb_controller.get_item(pk, sk)
 
     @log_and_handle_exceptions
     def update_community(self, community_id: str, update_data: CommunityUpdate) -> None:
@@ -105,14 +74,10 @@ class CommunityService:
         Args:
             community_id (str): The ID of the community to update.
             update_data (CommunityUpdate): The data to update in the community.
-
-        Raises:
-            ValueError: If the community_id or update_data is invalid.
         """
         pk = f"COMMUNITY#{community_id}"
         sk = f"METADATA#{community_id}"
-        update_dict = update_data.dict()
-        self.dynamodb_controller.update_item(CommunityModel, pk, sk, update_dict)
+        self.dynamodb_controller.update_item(pk, sk, update_data.dict())
 
     @log_and_handle_exceptions
     def delete_community(self, community_id: str) -> None:
@@ -120,25 +85,22 @@ class CommunityService:
 
         Args:
             community_id (str): The ID of the community to delete.
-
-        Raises:
-            ValueError: If the community_id is invalid.
         """
         pk = f"COMMUNITY#{community_id}"
         sk = f"METADATA#{community_id}"
-        self.dynamodb_controller.delete_item(CommunityModel, pk, sk)
+        self.dynamodb_controller.delete_item(pk, sk)
 
     @log_and_handle_exceptions
-    def list_communities(self) -> List[CommunityModel]:
+    def list_communities(self) -> List[Dict[str, Any]]:
         """Lists all communities.
 
         Returns:
-            List[CommunityModel]: A list of community items.
+            List[Dict[str, Any]]: A list of community items.
         """
-        key_condition_expression = CommunityModel.PK.startswith("COMMUNITY#")
+        key_condition_expression = Key('SK').eq("METADATA")
         items, _ = self.dynamodb_controller.query_with_pagination(
-            CommunityModel, 
-            key_condition_expression
+            key_condition=key_condition_expression,
+            index_name="GSI1"
         )
         return items
 
@@ -156,7 +118,7 @@ class CommunityService:
             "user_id": owner.user_id,
             "role": owner.role
         }
-        self.dynamodb_controller.put_item(CommunityModel(**owner_item))
+        self.dynamodb_controller.put_item(owner_item)
 
     @log_and_handle_exceptions
     def remove_owner(self, community_id: str, user_id: str) -> None:
@@ -168,7 +130,7 @@ class CommunityService:
         """
         pk = f"COMMUNITY#{community_id}"
         sk = f"OWNER#{user_id}"
-        self.dynamodb_controller.delete_item(CommunityModel, pk, sk)
+        self.dynamodb_controller.delete_item(pk, sk)
 
     @log_and_handle_exceptions
     def add_member(self, community_id: str, member: MemberAdd) -> None:
@@ -184,7 +146,7 @@ class CommunityService:
             "user_id": member.user_id,
             "role": member.role
         }
-        self.dynamodb_controller.put_item(CommunityModel(**member_item))
+        self.dynamodb_controller.put_item(member_item)
 
     @log_and_handle_exceptions
     def remove_member(self, community_id: str, user_id: str) -> None:
@@ -196,4 +158,4 @@ class CommunityService:
         """
         pk = f"COMMUNITY#{community_id}"
         sk = f"MEMBER#{user_id}"
-        self.dynamodb_controller.delete_item(CommunityModel, pk, sk)
+        self.dynamodb_controller.delete_item(pk, sk)

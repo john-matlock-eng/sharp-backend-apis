@@ -302,5 +302,7 @@ def remove_members(community_id: UUID4, user_id: UUID4, current_user: dict = Dep
         logger.error(f"Unexpected error removing member: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-# Create a handler for AWS Lambda
 handler = Mangum(app)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
