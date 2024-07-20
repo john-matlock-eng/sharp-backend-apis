@@ -34,7 +34,7 @@ class CommunityService:
         return wrapper
 
     @log_and_handle_exceptions
-    def create_community(self, community: CommunityCreate, user_id) -> None:
+    def create_community(self, community: CommunityCreate) -> None:
         """Creates a new community.
 
         Args:
@@ -46,7 +46,7 @@ class CommunityService:
             "community_id": str(community.community_id),
             "name": community.name,
             "description": community.description,
-            "owner_ids": user_id,
+            "owner_ids": community.owner_ids,
             "members": community.members,
             "keywords": community.keywords,
             "EntityType": "community",
