@@ -1,15 +1,22 @@
-from pynamodb.models import Model
-from pynamodb.attributes import UnicodeAttribute
+from pydantic import BaseModel, Field
 
-class UserModel(Model):
+class UserModel(BaseModel):
     """
-    A PynamoDB model representing a user.
+    A Pydantic model representing a user.
     """
-    class Meta:
-        table_name = 'sharp_app_data'
-        region = 'us-east-2'
+    PK: str = Field(..., regex=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Primary Key, a valid UUID")
+    SK: str = Field(..., regex=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Sort Key, a valid UUID")
+    DataType: str
+    Moniker: str
 
-    PK = UnicodeAttribute(hash_key=True)
-    SK = UnicodeAttribute(range_key=True)
-    DataType = UnicodeAttribute()
-    Moniker = UnicodeAttribute()
+    class Config:
+        schema_extra = {
+            "example": {
+                "PK": "123e4567-e89b-12d3-a456-426614174000",
+                "SK": "123e4567-e89b-12d3-a456-426614174001",
+                "DataType": "example_type",
+                "Moniker": "example_moniker"
+            }
+        }
+        orm_mode = True
+        allow_population_by_field_name = True
