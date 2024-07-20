@@ -1,10 +1,7 @@
 import logging
 from functools import wraps
-from typing import Dict, Any
-from pynamodb.models import Model
-from pynamodb.exceptions import PynamoDBException
 from app.lib.dynamodb_controller import DynamoDBController
-from app.models.user_model import UserModel  # Import the UserModel
+from app.models.user_model import UserModel
 from app.models.user_schema import UserCreate, UserUpdate
 
 class UserService:
@@ -29,9 +26,6 @@ class UserService:
                 result = method(self, *args, **kwargs)
                 self.logger.info(f"{method.__name__} completed successfully")
                 return result
-            except PynamoDBException as e:
-                self.logger.error(f"DynamoDB error in {method.__name__}: {e}")
-                raise
             except Exception as e:
                 self.logger.error(f"Unexpected error in {method.__name__}: {e}")
                 raise
@@ -49,7 +43,7 @@ class UserService:
         """
         pk = f'USER#{user_id}'
         sk = f'USER#{user_id}'
-        return self.dynamodb_controller.get_item(UserModel, pk, sk)
+        return self.dynamodb_controller.get_item(pk, sk)
 
     @log_and_handle_exceptions
     def create_user(self, user: UserCreate) -> None:
