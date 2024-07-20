@@ -1,11 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 
 class UserModel(BaseModel):
     """
     A Pydantic model representing a user.
     """
-    PK: str = Field(..., regex=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Primary Key, a valid UUID")
-    SK: str = Field(..., regex=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Sort Key, a valid UUID")
+    PK: str = Field(..., pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Primary Key, a valid UUID")
+    SK: str = Field(..., pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Sort Key, a valid UUID")
     DataType: str
     Moniker: str
 
