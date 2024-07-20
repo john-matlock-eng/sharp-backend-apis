@@ -5,6 +5,7 @@ from boto3.dynamodb.conditions import Key
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
 
+
 class CommunityService:
     """Service class for managing community operations."""
 
@@ -149,13 +150,15 @@ class CommunityService:
         self.dynamodb_controller.put_item(member_item)
 
     @log_and_handle_exceptions
-    def remove_member(self, community_id: str, user_id: str) -> None:
-        """Removes a member from a community.
+    def list_communities(self) -> List[Dict[str, Any]]:
+        """Lists all communities.
 
-        Args:
-            community_id (str): The ID of the community.
-            user_id (str): The ID of the user to remove as member.
+        Returns:
+            List[Dict[str, Any]]: A list of community items.
         """
-        pk = f"COMMUNITY#{community_id}"
-        sk = f"MEMBER#{user_id}"
-        self.dynamodb_controller.delete_item(pk, sk)
+        expression = Key('EntityType').eq('community')
+        items, _ = self.dynamodb_controller.query_with_pagination(
+            key_condition=expression,
+            index_name='GSI3'
+        )
+        return items
