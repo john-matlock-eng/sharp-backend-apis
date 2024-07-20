@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from mangum import Mangum
-from pydantic import UUID4
+from uuid import UUID
 import os
 import logging
 from botocore.exceptions import ClientError
@@ -41,11 +41,11 @@ def read_root():
     return {"message": "Welcome to the User Management API"}
 
 @app.get("/users/{user_id}")
-def read_user(user_id: UUID4):
+def read_user(user_id: UUID):
     """Read a user by its ID.
 
     Args:
-        user_id (UUID4): ID of the user to read.
+        user_id (UUID): ID of the user to read.
 
     Returns:
         dict: The user model.
@@ -96,7 +96,7 @@ def create_user(user: UserCreate):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.put("/users/{user_id}")
-def update_user(user_id: UUID4, user: UserUpdate):
+def update_user(user_id: UUID, user: UserUpdate):
     """Update a user by its ID.
 
     Args:
@@ -125,7 +125,7 @@ def update_user(user_id: UUID4, user: UserUpdate):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.delete("/users/{user_id}")
-def delete_user(user_id: UUID4):
+def delete_user(user_id: UUID):
     """Delete a user by its ID.
 
     Args:
