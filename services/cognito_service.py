@@ -5,10 +5,6 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 
-# Initialize logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # Cognito settings
 COGNITO_REGION = os.getenv('COGNITO_REGION')
 USER_POOL_ID = os.getenv('USER_POOL_ID')
@@ -23,6 +19,8 @@ class CognitoService:
         self.user_pool_id = USER_POOL_ID
         self.app_client_id = APP_CLIENT_ID
         self.jwks_url = COGNITO_JWKS_URL
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
 
     def get_jwks(self):
         try:
@@ -30,7 +28,7 @@ class CognitoService:
             response.raise_for_status()
             return response.json()['keys']
         except Exception as e:
-            logger.error(f"Error fetching JWKS: {e}")
+            self.logger.error(f"Error fetching JWKS: {e}")
             raise HTTPException(status_code=500, detail="Error fetching JWKS")
 
     def validate_token(self, token: str):
@@ -57,13 +55,13 @@ class CognitoService:
                 )
                 return payload
             else:
-                logger.error(f"Unable to find appropriate key for issuer: https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool_id}")
+                self.logger.error(f"Unable to find appropriate key for issuer: https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool_id}")
                 raise HTTPException(status_code=400, detail="Invalid token")
         except JWTError as e:
-            logger.error(f"JWT error: {e}")
+            self.logger.error(f"JWT error: {e}")
             raise HTTPException(status_code=400, detail="Invalid token")
         except Exception as e:
-            logger.error(f"Token validation error: {e}")
+            self.logger.error(f"Token validation error: {e}")
             raise HTTPException(status_code=500, detail="Token validation error")
 
     def extract_claims(self, token: str):

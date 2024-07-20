@@ -118,4 +118,5 @@ class DynamoDBController:
 
         items = response.get('Items', [])
         last_evaluated_key = response.get('LastEvaluatedKey')
+
         return items, last_evaluated_key
