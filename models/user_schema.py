@@ -1,7 +1,8 @@
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel
+from uuid import UUID
 
 class UserCreate(BaseModel):
-    user_id: UUID4
+    user_id: UUID
     moniker: str
 
 class UserUpdate(BaseModel):
