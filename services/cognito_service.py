@@ -21,6 +21,7 @@ class CognitoService:
         self.jwks_url = COGNITO_JWKS_URL
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
+        self.jwks = self.get_jwks()
 
     def get_jwks(self):
         try:
@@ -33,10 +34,9 @@ class CognitoService:
 
     def validate_token(self, token: str):
         try:
-            jwks = self.get_jwks()
             unverified_headers = jwt.get_unverified_header(token)
             rsa_key = {}
-            for key in jwks:
+            for key in self.jwks:
                 if key["kid"] == unverified_headers["kid"]:
                     rsa_key = {
                         "kty": key["kty"],
@@ -53,6 +53,7 @@ class CognitoService:
                     audience=self.app_client_id,
                     issuer=f"https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool_id}"
                 )
+                self.logger.info(f"Token validated successfully: {payload}")
                 return payload
             else:
                 self.logger.error(f"Unable to find appropriate key for issuer: https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool_id}")

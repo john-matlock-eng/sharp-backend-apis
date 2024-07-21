@@ -35,27 +35,11 @@ community_service = CommunityService(dynamodb_controller)
 
 @app.get("/")
 def read_root():
-    """Root endpoint to check API status.
-
-    Returns:
-        dict: Welcome message.
-    """
     logger.info("Root endpoint called")
     return {"message": "Welcome to the Community Management API"}
 
 @app.get("/communities/")
 def list_communities(current_user: dict = Depends(get_current_user)):
-    """List all communities.
-
-    Args:
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: A dictionary containing a list of communities.
-
-    Raises:
-        HTTPException: If there is an error listing communities.
-    """
     try:
         logger.info("Received request to list communities")
         communities = community_service.list_communities()
@@ -70,18 +54,6 @@ def list_communities(current_user: dict = Depends(get_current_user)):
 
 @app.get("/communities/{community_id}")
 def read_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
-    """Read a community by its ID.
-
-    Args:
-        community_id (UUID4): ID of the community to read.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: The community model.
-
-    Raises:
-        HTTPException: If the community is not found or if there is an error.
-    """
     try:
         logger.info(f"Received request to read community with ID: {community_id}")
         community = community_service.get_community(str(community_id))
@@ -99,22 +71,10 @@ def read_community(community_id: UUID4, current_user: dict = Depends(get_current
 
 @app.post("/communities/")
 def create_community(community: CommunityCreate, current_user: dict = Depends(get_current_user)):
-    """Create a new community.
-
-    Args:
-        community (CommunityCreate): Community creation data.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If there is an error creating the community.
-    """
     try:
         logger.info(f"Received request to create community with ID: {community.community_id}")
         
-        community.owner_ids = [current_user["sub"]]
+        community.owner_ids.append(current_user["sub"])
 
         logger.debug(f"Community data: {community}")
 
@@ -135,19 +95,6 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
 
 @app.put("/communities/{community_id}")
 def update_community(community_id: UUID4, community: CommunityUpdate, current_user: dict = Depends(get_current_user)):
-    """Update a community by its ID.
-
-    Args:
-        community_id (UUID4): ID of the community to update.
-        community (CommunityUpdate): Community update data.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If the community is not found or if there is an error updating the community.
-    """
     try:
         logger.info(f"Received request to update community with ID: {community_id}")
         logger.debug(f"Update data: {community}")
@@ -157,7 +104,7 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
             logger.error(f"Community {community_id} not found")
             raise HTTPException(status_code=404, detail="Community not found")
 
-        community_service.update_community(str(community_id), community)
+        community_service.update_community(str(community_id), community.dict(exclude_unset=True))
         logger.info(f"Community {community_id} updated successfully")
         return {"message": "Community updated successfully"}
     except ClientError as e:
@@ -169,18 +116,6 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
 
 @app.delete("/communities/{community_id}")
 def delete_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
-    """Delete a community by its ID.
-
-    Args:
-        community_id (UUID4): ID of the community to delete.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If the community is not found or if there is an error deleting the community.
-    """
     try:
         logger.info(f"Received request to delete community with ID: {community_id}")
         community = community_service.get_community(str(community_id))
@@ -199,22 +134,9 @@ def delete_community(community_id: UUID4, current_user: dict = Depends(get_curre
 
 @app.post("/communities/{community_id}/owners/")
 def add_owners(community_id: UUID4, owner: OwnerAdd, current_user: dict = Depends(get_current_user)):
-    """Add an owner to a community.
-
-    Args:
-        community_id (UUID4): ID of the community.
-        owner (OwnerAdd): Owner addition data.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If there is an error adding the owner.
-    """
     try:
         logger.info(f"Received request to add owner to community with ID: {community_id}")
-        community_service.add_owner(str(community_id), owner)
+        community_service.add_owner(str(community_id), owner.user_id)
         logger.info(f"Owner {owner.user_id} added to community {community_id} successfully")
         return {"message": "Owner added successfully"}
     except ClientError as e:
@@ -226,19 +148,6 @@ def add_owners(community_id: UUID4, owner: OwnerAdd, current_user: dict = Depend
 
 @app.delete("/communities/{community_id}/owners/{user_id}")
 def remove_owners(community_id: UUID4, user_id: UUID4, current_user: dict = Depends(get_current_user)):
-    """Remove an owner from a community.
-
-    Args:
-        community_id (UUID4): ID of the community.
-        user_id (UUID4): ID of the user to remove as owner.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If there is an error removing the owner.
-    """
     try:
         logger.info(f"Received request to remove owner {user_id} from community {community_id}")
         community_service.remove_owner(str(community_id), str(user_id))
@@ -253,19 +162,6 @@ def remove_owners(community_id: UUID4, user_id: UUID4, current_user: dict = Depe
 
 @app.post("/communities/{community_id}/members/")
 def add_members(community_id: UUID4, member: MemberAdd, current_user: dict = Depends(get_current_user)):
-    """Add a member to a community.
-
-    Args:
-        community_id (UUID4): ID of the community.
-        member (MemberAdd): Member addition data.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If there is an error adding the member.
-    """
     try:
         logger.info(f"Received request to add member to community with ID: {community_id}")
         community_service.add_member(str(community_id), member)
@@ -280,19 +176,6 @@ def add_members(community_id: UUID4, member: MemberAdd, current_user: dict = Dep
 
 @app.delete("/communities/{community_id}/members/{user_id}")
 def remove_members(community_id: UUID4, user_id: UUID4, current_user: dict = Depends(get_current_user)):
-    """Remove a member from a community.
-
-    Args:
-        community_id (UUID4): ID of the community.
-        user_id (UUID4): ID of the user to remove as member.
-        current_user (dict): Current authenticated user.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If there is an error removing the member.
-    """
     try:
         logger.info(f"Received request to remove member {user_id} from community {community_id}")
         community_service.remove_member(str(community_id), str(user_id))
