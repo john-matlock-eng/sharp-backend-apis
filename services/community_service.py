@@ -6,14 +6,15 @@ from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_member_model import CommunityMemberModel
 from app.models.community_schema import CommunityCreate
 
+
 class CommunityService:
     def __init__(self, dynamodb_controller: DynamoDBController):
         self.dynamodb_controller = dynamodb_controller
 
     def create_community(self, community: CommunityCreate) -> None:
         item = {
-            'PK': f'COMMUNITY#{community.community_id}',
-            'SK': 'DETAILS',
+            'PK': 'COMMUNITY',
+            'SK': f'COMMUNITY#{community.community_id}',
             'EntityType': 'Community',
             'CreatedAt': community.created_at,
             'community_id': str(community.community_id),
@@ -26,13 +27,13 @@ class CommunityService:
         self.dynamodb_controller.put_item(item)
 
     def get_community(self, community_id: str) -> Dict[str, Any]:
-        return self.dynamodb_controller.get_item(f'COMMUNITY#{community_id}', 'DETAILS')
+        return self.dynamodb_controller.get_item('COMMUNITY', f'COMMUNITY#{community_id}')
 
     def update_community(self, community_id: str, update_data: Dict[str, Any]) -> None:
-        self.dynamodb_controller.update_item(f'COMMUNITY#{community_id}', 'DETAILS', update_data)
+        self.dynamodb_controller.update_item('COMMUNITY', f'COMMUNITY#{community_id}', update_data)
 
     def delete_community(self, community_id: str) -> None:
-        self.dynamodb_controller.delete_item(f'COMMUNITY#{community_id}', 'DETAILS')
+        self.dynamodb_controller.delete_item('COMMUNITY', f'COMMUNITY#{community_id}')
 
     def add_owner(self, community_id: str, owner_id: str) -> None:
         self.dynamodb_controller.update_item(f'COMMUNITY#{community_id}', 'DETAILS', {'OwnerID': owner_id})
@@ -48,6 +49,6 @@ class CommunityService:
         self.dynamodb_controller.delete_item(f'COMMUNITY#{community_id}', f'MEMBER#{user_id}')
 
     def list_communities(self) -> List[Dict[str, Any]]:
-        partition_key = 'COMMUNITY'
-        sort_key_condition = Key('SK').begins_with('DETAILS')
+        partition_key = Key('PK').eq('COMMUNITY')
+        sort_key_condition = Key('SK').begins_with('COMMUNITY#')
         return self.dynamodb_controller.query_with_pagination(partition_key, sort_key_condition)[0]

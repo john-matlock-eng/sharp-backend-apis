@@ -111,21 +111,8 @@ class DynamoDBController:
         )
 
     @log_and_handle_exceptions
-    def query_with_pagination(self, partition_key: str, sort_key_condition: Optional[Key] = None, filter_condition: Optional[Any] = None, index_name: Optional[str] = None, limit: int = 20, last_evaluated_key: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict[str, Any]], Optional[Dict[str, Any]]]:
-        """Query items in the DynamoDB table with pagination.
-
-        Args:
-            partition_key (str): The partition key value to query.
-            sort_key_condition (Optional[Key]): Optional sort key condition for the query.
-            filter_condition (Optional[Any]): Optional filter condition for the query.
-            index_name (Optional[str]): Optional index name for the query.
-            limit (int): The maximum number of items to retrieve.
-            last_evaluated_key (Optional[Dict[str, Any]]): The last evaluated key for pagination.
-
-        Returns:
-            Tuple[List[Dict[str, Any]], Optional[Dict[str, Any]]]: A tuple containing the list of retrieved items and the last evaluated key.
-        """
-        key_condition = Key('PK').eq(partition_key)
+    def query_with_pagination(self, partition_key: Key, sort_key_condition: Optional[Key] = None, filter_condition: Optional[Any] = None, index_name: Optional[str] = None, limit: int = 20, last_evaluated_key: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict[str, Any]], Optional[Dict[str, Any]]]:
+        key_condition = partition_key
         if sort_key_condition:
             key_condition = key_condition & sort_key_condition
 
@@ -147,3 +134,4 @@ class DynamoDBController:
         last_evaluated_key = response.get('LastEvaluatedKey')
 
         return items, last_evaluated_key
+
