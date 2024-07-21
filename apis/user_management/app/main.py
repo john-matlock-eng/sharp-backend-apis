@@ -67,34 +67,6 @@ def read_user(user_id: UUID):
         logger.error(f"Unexpected error getting user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@app.post("/users/")
-def create_user(user: UserCreate):
-    """Create a new user.
-
-    Args:
-        user (UserCreate): User creation data.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If there is an error creating the user.
-    """
-    try:
-        existing_user = user_service.get_user(str(user.user_id))
-        if existing_user:
-            logger.error(f"User ID {user.user_id} already exists")
-            raise HTTPException(status_code=400, detail="User ID already exists")
-        user_service.create_user(user)
-        logger.info(f"User {user.user_id} created successfully")
-        return {"message": "User created successfully"}
-    except ClientError as e:
-        logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=500, detail="Error creating user")
-    except Exception as e:
-        logger.error(f"Unexpected error creating user: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
 @app.put("/users/{user_id}")
 def update_user(user_id: UUID, user: UserUpdate):
     """Update a user by its ID.
@@ -122,34 +94,6 @@ def update_user(user_id: UUID, user: UserUpdate):
         raise HTTPException(status_code=500, detail="Error updating user")
     except Exception as e:
         logger.error(f"Unexpected error updating user: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-@app.delete("/users/{user_id}")
-def delete_user(user_id: UUID):
-    """Delete a user by its ID.
-
-    Args:
-        user_id (UUID4): ID of the user to delete.
-
-    Returns:
-        dict: Success message.
-
-    Raises:
-        HTTPException: If the user is not found or if there is an error deleting the user.
-    """
-    try:
-        existing_user = user_service.get_user(str(user_id))
-        if not existing_user:
-            logger.error(f"User {user_id} not found")
-            raise HTTPException(status_code=404, detail="User not found")
-        user_service.delete_user(str(user_id))
-        logger.info(f"User {user_id} deleted successfully")
-        return {"message": "User deleted successfully"}
-    except ClientError as e:
-        logger.error(f"Error deleting user: {e}")
-        raise HTTPException(status_code=500, detail="Error deleting user")
-    except Exception as e:
-        logger.error(f"Unexpected error deleting user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 handler = Mangum(app)
