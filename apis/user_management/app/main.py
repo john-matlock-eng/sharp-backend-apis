@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from mangum import Mangum
 from app.services.user_service import UserService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.user_schema import UserCreate, UserUpdate
@@ -13,22 +14,29 @@ table_name = os.getenv('TABLE_NAME', 'sharp_app_data')
 dynamodb_controller = DynamoDBController(table_name)
 user_service = UserService(dynamodb_controller)
 
-@app.post("/users/")
-def create_user(user: UserCreate):
-    try:
-        existing_user = user_service.get_user(str(user.user_id))
-        if existing_user:
-            logger.error(f"User ID {user.user_id} already exists")
-            raise HTTPException(status_code=400, detail="User ID already exists")
-        user_service.create_user(user)
-        logger.info(f"User {user.user_id} created successfully")
-        return {"message": "User created successfully"}
-    except Exception as e:
-        logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=500, detail="Error creating user")
+@app.get("/")
+def read_root():
+    """Root endpoint to check API status.
+
+    Returns:
+        dict: Welcome message.
+    """
+    logger.info("Root endpoint called")
+    return {"message": "Welcome to the User Management API"}
 
 @app.get("/users/{user_id}")
 def read_user(user_id: UUID):
+    """Read a user by its ID.
+
+    Args:
+        user_id (UUID): ID of the user to read.
+
+    Returns:
+        dict: The user model.
+
+    Raises:
+        HTTPException: If the user is not found or if there is an error.
+    """
     try:
         user = user_service.get_user(str(user_id))
         if user:
@@ -36,9 +44,12 @@ def read_user(user_id: UUID):
             return user
         logger.error(f"User {user_id} not found")
         raise HTTPException(status_code=404, detail="User not found")
-    except Exception as e:
+    except ClientError as e:
         logger.error(f"Error getting user: {e}")
         raise HTTPException(status_code=500, detail="Error getting user")
+    except Exception as e:
+        logger.error(f"Unexpected error getting user: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.put("/users/{user_id}")
 def update_user(user_id: UUID, user: UserUpdate):
@@ -54,26 +65,7 @@ def update_user(user_id: UUID, user: UserUpdate):
         logger.error(f"Error updating user: {e}")
         raise HTTPException(status_code=500, detail="Error updating user")
 
-@app.delete("/users/{user_id}")
-def delete_user(user_id: UUID):
-    try:
-        existing_user = user_service.get_user(str(user_id))
-        if not existing_user:
-            logger.error(f"User {user_id} not found")
-            raise HTTPException(status_code=404, detail="User not found")
-        user_service.delete_user(str(user_id))
-        logger.info(f"User {user_id} deleted successfully")
-        return {"message": "User deleted successfully"}
-    except Exception as e:
-        logger.error(f"Error deleting user: {e}")
-        raise HTTPException(status_code=500, detail="Error deleting user")
-
-@app.get("/users/{user_id}/communities")
-def list_user_communities(user_id: UUID):
-    try:
-        communities = user_service.list_communities_for_user(str(user_id))
-        logger.info(f"Communities for user {user_id} retrieved successfully")
-        return communities
-    except Exception as e:
-        logger.error(f"Error listing communities for user: {e}")
-        raise HTTPException(status_code=500, detail="Error listing communities for user")
+handler = Mangum(app)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
