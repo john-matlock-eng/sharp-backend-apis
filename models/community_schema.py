@@ -1,25 +1,24 @@
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel, Field
 from typing import List, Optional
+from datetime import datetime, timezone
+from uuid import UUID
 
 class CommunityCreate(BaseModel):
-    community_id: UUID4
-    name: str
+    community_id: UUID
+    community_name: str
     description: str
-    owner_ids: Optional[List[str]] = None
-    members: List[str]
+    members: List[UUID]
     keywords: List[str]
-    updated_at: Optional[str] = None
+    created_at: int = Field(default_factory=lambda: int(datetime.now(timezone.utc).timestamp()))
+    owner_ids: Optional[List[UUID]] = []
 
 class CommunityUpdate(BaseModel):
-    name: str
-    description: str
-    members: List[str]
-    keywords: List[str]
+    community_name: Optional[str]
+    owner_ids: Optional[List[str]]
 
 class OwnerAdd(BaseModel):
-    user_id: str
-    role: str
+    user_id: UUID
 
 class MemberAdd(BaseModel):
-    user_id: str
-    role: str
+    user_id: UUID
+    joined_at: int = Field(default_factory=lambda: int(datetime.now(timezone.utc).timestamp()))

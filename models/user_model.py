@@ -1,22 +1,9 @@
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field
+from datetime import datetime
 
 class UserModel(BaseModel):
-    """
-    A Pydantic model representing a user.
-    """
-    PK: str = Field(..., pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Primary Key, a valid UUID")
-    SK: str = Field(..., pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$', description="Sort Key, a valid UUID")
-    DataType: str
-    Moniker: str
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "PK": "123e4567-e89b-12d3-a456-426614174000",
-                "SK": "123e4567-e89b-12d3-a456-426614174001",
-                "DataType": "example_type",
-                "Moniker": "example_moniker"
-            }
-        }
-        orm_mode = True
-        allow_population_by_field_name = True
+    user_id: str = Field(..., alias='PK')
+    profile: str = Field('PROFILE', alias='SK')
+    entity_type: str = Field('User', alias='EntityType')
+    name: str = Field(..., alias='Name')
+    joined_at: datetime = Field(..., alias='JoinedAt')

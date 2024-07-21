@@ -26,7 +26,7 @@ resource "aws_dynamodb_table" "sharp_app_data" {
 
   attribute {
     name = "CreatedAt"
-    type = "S"
+    type = "N"
   }
 
   global_secondary_index {
