@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from mangum import Mangum
 from app.services.user_service import UserService
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.user_schema import UserCreate, UserUpdate
