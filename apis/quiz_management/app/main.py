@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import UUID4
 import os
 import logging
+from mangum import Mangum
 from botocore.exceptions import ClientError
 from app.services.quiz_service import QuizService
 from app.services.community_service import CommunityService
@@ -133,6 +134,7 @@ def delete_quiz(community_id: UUID4, quiz_id: UUID4, current_user: dict = Depend
         logger.error(f"Unexpected error deleting quiz: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+handler = Mangum(app)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
