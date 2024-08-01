@@ -1,9 +1,13 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import UUID4
 import os
 import logging
 from botocore.exceptions import ClientError
 from app.services.quiz_service import QuizService
+from app.services.community_service import CommunityService
+from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.quiz_schema import QuizCreate, QuizUpdate
 
@@ -11,15 +15,27 @@ from app.models.quiz_schema import QuizCreate, QuizUpdate
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="https://your_cognito_domain/oauth2/token")
+
 app = FastAPI()
 
-# Initialize DynamoDB controller and quiz service
+# Configure CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "*"],  # Allow all origins for now
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize DynamoDB controller and services
 table_name = os.getenv('TABLE_NAME', 'sharp_app_data')
 dynamodb_controller = DynamoDBController(table_name)
 quiz_service = QuizService(dynamodb_controller)
+community_service = CommunityService(dynamodb_controller)
 
 @app.get("/quizzes/{community_id}")
-def list_quizzes(community_id: UUID4):
+def list_quizzes(community_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to list quizzes for community ID: {community_id}")
         quizzes = quiz_service.list_quizzes(str(community_id))
@@ -33,7 +49,7 @@ def list_quizzes(community_id: UUID4):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/quizzes/{community_id}/{quiz_id}")
-def read_quiz(community_id: UUID4, quiz_id: UUID4):
+def read_quiz(community_id: UUID4, quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to read quiz with ID: {quiz_id} in community {community_id}")
         quiz = quiz_service.get_quiz(str(community_id), str(quiz_id))
@@ -50,9 +66,13 @@ def read_quiz(community_id: UUID4, quiz_id: UUID4):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.post("/quizzes/")
-def create_quiz(quiz: QuizCreate):
+def create_quiz(quiz: QuizCreate, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to create quiz with ID: {quiz.quiz_id}")
+
+        # Authorization check using CommunityService
+        community_service.assert_user_is_owner(str(quiz.community_id), current_user["sub"])
+
         existing_quiz = quiz_service.get_quiz(str(quiz.community_id), str(quiz.quiz_id))
         if existing_quiz:
             logger.error(f"Quiz ID {quiz.quiz_id} already exists")
@@ -69,9 +89,13 @@ def create_quiz(quiz: QuizCreate):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.put("/quizzes/{community_id}/{quiz_id}")
-def update_quiz(community_id: UUID4, quiz_id: UUID4, quiz: QuizUpdate):
+def update_quiz(community_id: UUID4, quiz_id: UUID4, quiz: QuizUpdate, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to update quiz with ID: {quiz_id}")
+
+        # Authorization check using CommunityService
+        community_service.assert_user_is_owner(str(community_id), current_user["sub"])
+
         existing_quiz = quiz_service.get_quiz(str(community_id), str(quiz_id))
         if not existing_quiz:
             logger.error(f"Quiz {quiz_id} not found")
@@ -88,9 +112,13 @@ def update_quiz(community_id: UUID4, quiz_id: UUID4, quiz: QuizUpdate):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.delete("/quizzes/{community_id}/{quiz_id}")
-def delete_quiz(community_id: UUID4, quiz_id: UUID4):
+def delete_quiz(community_id: UUID4, quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to delete quiz with ID: {quiz_id}")
+
+        # Authorization check using CommunityService
+        community_service.assert_user_is_owner(str(community_id), current_user["sub"])
+
         quiz = quiz_service.get_quiz(str(community_id), str(quiz_id))
         if not quiz:
             logger.error(f"Quiz {quiz_id} not found")
@@ -104,3 +132,7 @@ def delete_quiz(community_id: UUID4, quiz_id: UUID4):
     except Exception as e:
         logger.error(f"Unexpected error deleting quiz: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,4 +1,5 @@
 import logging
+from fastapi import HTTPException
 from functools import wraps
 from typing import Dict, Any, List
 from boto3.dynamodb.conditions import Key
@@ -52,3 +53,13 @@ class CommunityService:
         partition_key = Key('PK').eq('COMMUNITY')
         sort_key_condition = Key('SK').begins_with('COMMUNITY#')
         return self.dynamodb_controller.query_with_pagination(partition_key, sort_key_condition)[0]
+
+    def is_user_owner(self, community_id: str, user_id: str) -> bool:
+        community = self.get_community(community_id)
+        if not community:
+            raise HTTPException(status_code=404, detail="Community not found")
+        return user_id in community['owner_ids']
+
+    def assert_user_is_owner(self, community_id: str, user_id: str):
+        if not self.is_user_owner(community_id, user_id):
+            raise HTTPException(status_code=403, detail="User is not authorized for this action")
