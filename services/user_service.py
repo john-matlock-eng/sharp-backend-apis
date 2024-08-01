@@ -11,8 +11,8 @@ class UserService:
 
     def create_user(self, user: UserCreate) -> None:
         item = {
-            'PK': f'USER#{user.user_id}',
-            'SK': 'PROFILE',
+            'PK': "USER",
+            'SK': f'USER#{user.user_id}',
             'EntityType': 'User',
             'CreatedAt': user.joined_at,
             'user_id': str(user.user_id),
