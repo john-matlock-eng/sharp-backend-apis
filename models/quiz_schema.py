@@ -3,9 +3,9 @@ from typing import List, Optional
 
 class Question(BaseModel):
     question_id: str
-    text: str
+    question_text: str
     options: List[str]
-    answer: str
+    answer: List[str]
 
 class QuizBase(BaseModel):
     community_id: UUID4

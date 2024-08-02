@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 class QuestionModel(BaseModel):
-    questionText: str
+    question_text: str
     options: List[str]
     answer: List[str]
 
