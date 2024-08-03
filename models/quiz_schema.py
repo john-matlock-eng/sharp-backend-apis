@@ -15,8 +15,10 @@ class QuizBase(BaseModel):
 
 class QuizCreate(QuizBase):
     quiz_id: str = Field(..., description="Unique identifier for the quiz")
+    owner_ids: List[str] = Field(..., description="List of user IDs who own the quiz")
 
 class QuizUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     questions: Optional[List[Question]] = None
+    owner_ids: Optional[List[str]] = None

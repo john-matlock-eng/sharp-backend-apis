@@ -1,7 +1,7 @@
 from functools import wraps
-from fastapi import HTTPException, Depends
-from app.services.cognito_service import get_current_user
+from fastapi import HTTPException
 from app.lib.dynamodb_controller import DynamoDBController
+from app.services.quiz_service import QuizService
 from typing import Dict, Any, List
 
 class CommunityService:
@@ -96,6 +96,27 @@ def requires_member(community_id_param: str):
             
             if not community_service.is_user_member(community_id, current_user['user_id']):
                 raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
+            
+            return await func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def requires_quiz_owner():
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            quiz_id = kwargs.get('quiz_id')
+            current_user = kwargs.get('current_user')
+            quiz_service = kwargs.get('quiz_service', QuizService)
+            
+            # Retrieve quiz metadata
+            quiz_metadata = await quiz_service.get_quiz_metadata(quiz_id)
+            if not quiz_metadata:
+                raise HTTPException(status_code=404, detail="Quiz not found")
+            
+            # Check if the user is in the owner_ids
+            if current_user['user_id'] not in quiz_metadata['owner_ids']:
+                raise HTTPException(status_code=403, detail="User is not authorized for this action")
             
             return await func(*args, **kwargs)
         return wrapper

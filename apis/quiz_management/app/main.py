@@ -6,11 +6,12 @@ import os
 import logging
 from mangum import Mangum
 from app.services.quiz_service import QuizService
-from app.services.community_service import CommunityService, requires_owner, requires_member
+from app.services.community_service import CommunityService, requires_member
 from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.quiz_schema import QuizCreate, QuizUpdate
 from app.models.question_schema import QuestionModel
+from app.services.auth_security import requires_quiz_owner
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -36,93 +37,94 @@ quiz_service = QuizService(dynamodb_controller)
 community_service = CommunityService(dynamodb_controller)
 
 @app.post("/quizzes/")
-async def create_quiz(quiz_data: QuizCreate, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_service.create_quiz(quiz_data)
+@requires_member('community_id')
+async def create_quiz(quiz_data: QuizCreate, current_user: dict = Depends(get_current_user)):
+    quiz_data.owner_ids = [current_user["sub"]]
+    await quiz_service.create_quiz(quiz_data)
     return {"message": "Quiz created successfully"}
 
 @app.get("/quizzes/{quiz_id}")
 @requires_member('community_id')
-async def get_quiz(quiz_id: UUID4, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+async def get_quiz(quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
     community_id = quiz_metadata['community_id']
-    questions, _ = quiz_service.get_questions_by_quiz_id(community_id, str(quiz_id))
+    questions, _ = await quiz_service.get_questions_by_quiz_id(community_id, str(quiz_id))
     return {"metadata": quiz_metadata, "questions": questions}
 
 @app.get("/quizzes/")
 async def list_quizzes(
     community_id: str,
     current_user: dict = Depends(get_current_user),
-    community_service: CommunityService = Depends(),
     limit: int = Query(10, description="Number of quizzes to return"),
     last_evaluated_key: str = Query(None, description="Token for pagination")
 ):
-    quizzes, next_token = quiz_service.list_quizzes(community_id, limit, last_evaluated_key)
+    quizzes, next_token = await quiz_service.list_quizzes(community_id, limit, last_evaluated_key)
     return {"quizzes": quizzes, "next_token": next_token}
 
 @app.put("/quizzes/{quiz_id}")
-@requires_owner('community_id')
-async def update_quiz(quiz_id: UUID4, quiz_data: QuizUpdate, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+@requires_quiz_owner('quiz_id')
+async def update_quiz(quiz_id: UUID4, quiz_data: QuizUpdate, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    quiz_service.update_quiz(quiz_id, quiz_data)
+    await quiz_service.update_quiz(quiz_id, quiz_data)
     return {"message": "Quiz updated successfully"}
 
 @app.delete("/quizzes/{quiz_id}")
-@requires_owner('community_id')
-async def delete_quiz(quiz_id: UUID4, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+@requires_quiz_owner('quiz_id')
+async def delete_quiz(quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    quiz_service.delete_quiz(str(quiz_id))
+    await quiz_service.delete_quiz(str(quiz_id))
     return {"message": "Quiz deleted successfully"}
 
 @app.post("/quizzes/{quiz_id}/questions/")
-@requires_owner('community_id')
-async def create_question(quiz_id: UUID4, question_data: QuestionModel, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+@requires_quiz_owner('quiz_id')
+async def create_question(quiz_id: UUID4, question_data: QuestionModel, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    quiz_service.create_question(quiz_metadata['community_id'], str(quiz_id), question_data)
+    await quiz_service.create_question(quiz_metadata['community_id'], str(quiz_id), question_data)
     return {"message": "Question created successfully"}
 
 @app.get("/quizzes/{quiz_id}/questions/{question_id}")
 @requires_member('community_id')
-async def get_question(quiz_id: UUID4, question_id: UUID4, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+async def get_question(quiz_id: UUID4, question_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    question = quiz_service.get_question(quiz_metadata['community_id'], str(quiz_id), str(question_id))
+    question = await quiz_service.get_question(quiz_metadata['community_id'], str(quiz_id), str(question_id))
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     
     return question
 
 @app.put("/quizzes/{quiz_id}/questions/{question_id}")
-@requires_owner('community_id')
-async def update_question(quiz_id: UUID4, question_id: UUID4, question_data: QuestionModel, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+@requires_quiz_owner('quiz_id')
+async def update_question(quiz_id: UUID4, question_id: UUID4, question_data: QuestionModel, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    quiz_service.update_question(quiz_metadata['community_id'], str(quiz_id), str(question_id), question_data)
+    await quiz_service.update_question(quiz_metadata['community_id'], str(quiz_id), str(question_id), question_data)
     return {"message": "Question updated successfully"}
 
 @app.delete("/quizzes/{quiz_id}/questions/{question_id}")
-@requires_owner('community_id')
-async def delete_question(quiz_id: UUID4, question_id: UUID4, current_user: dict = Depends(get_current_user), community_service: CommunityService = Depends()):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+@requires_quiz_owner('quiz_id')
+async def delete_question(quiz_id: UUID4, question_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    quiz_service.delete_question(quiz_metadata['community_id'], str(quiz_id), str(question_id))
+    await quiz_service.delete_question(quiz_metadata['community_id'], str(quiz_id), str(question_id))
     return {"message": "Question deleted successfully"}
 
 @app.get("/quizzes/{quiz_id}/questions")
@@ -130,15 +132,14 @@ async def delete_question(quiz_id: UUID4, question_id: UUID4, current_user: dict
 async def get_quiz_questions(
     quiz_id: UUID4,
     current_user: dict = Depends(get_current_user),
-    community_service: CommunityService = Depends(),
     limit: int = Query(10, description="Number of questions to return"),
     last_evaluated_key: str = Query(None, description="Token for pagination")
 ):
-    quiz_metadata = quiz_service.get_quiz_metadata(str(quiz_id))
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
     if not quiz_metadata:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    questions, next_token = quiz_service.get_questions_by_quiz_id(quiz_metadata['community_id'], str(quiz_id), limit, last_evaluated_key)
+    questions, next_token = await quiz_service.get_questions_by_quiz_id(quiz_metadata['community_id'], str(quiz_id), limit, last_evaluated_key)
     return {"questions": questions, "next_token": next_token}
 
 handler = Mangum(app)

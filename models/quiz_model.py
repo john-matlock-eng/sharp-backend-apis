@@ -13,6 +13,7 @@ class QuizMetadataModel(BaseModel):
     topic: str
     description: Optional[str]
     created_at: int
+    owner_ids: List[str]
 
 class QuizCreateModel(BaseModel):
     metadata: QuizMetadataModel
