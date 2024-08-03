@@ -1,16 +1,17 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import UUID4
 import os
 import logging
 from mangum import Mangum
-from botocore.exceptions import ClientError
 from app.services.quiz_service import QuizService
-from app.services.community_service import CommunityService
+from app.services.community_service import CommunityService, requires_member
 from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.quiz_schema import QuizCreate, QuizUpdate
+from app.models.question_schema import QuestionModel
+from app.services.auth_security import requires_quiz_owner
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -35,106 +36,110 @@ dynamodb_controller = DynamoDBController(table_name)
 quiz_service = QuizService(dynamodb_controller)
 community_service = CommunityService(dynamodb_controller)
 
-@app.get("/quizzes/{community_id}")
-def list_quizzes(community_id: UUID4, current_user: dict = Depends(get_current_user)):
-    try:
-        logger.info(f"Received request to list quizzes for community ID: {community_id}")
-        quizzes = quiz_service.list_quizzes(str(community_id))
-        logger.info("Quizzes listed successfully")
-        return {"quizzes": quizzes}
-    except ClientError as e:
-        logger.error(f"Error listing quizzes: {e}")
-        raise HTTPException(status_code=500, detail="Error listing quizzes")
-    except Exception as e:
-        logger.error(f"Unexpected error listing quizzes: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-@app.get("/quizzes/{community_id}/{quiz_id}")
-def read_quiz(community_id: UUID4, quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
-    try:
-        logger.info(f"Received request to read quiz with ID: {quiz_id} in community {community_id}")
-        quiz = quiz_service.get_quiz(str(community_id), str(quiz_id))
-        if quiz:
-            logger.info(f"Quiz {quiz_id} retrieved successfully")
-            return quiz
-        logger.error(f"Quiz {quiz_id} not found")
-        raise HTTPException(status_code=404, detail="Quiz not found")
-    except ClientError as e:
-        logger.error(f"Error getting quiz: {e}")
-        raise HTTPException(status_code=500, detail="Error getting quiz")
-    except Exception as e:
-        logger.error(f"Unexpected error getting quiz: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
 @app.post("/quizzes/")
-def create_quiz(quiz: QuizCreate, current_user: dict = Depends(get_current_user)):
-    try:
-        logger.info(f"Received request to create quiz with ID: {quiz.quiz_id}")
+@requires_member('community_id')
+async def create_quiz(quiz_data: QuizCreate, current_user: dict = Depends(get_current_user)):
+    quiz_data.owner_ids = [current_user["sub"]]
+    await quiz_service.create_quiz(quiz_data)
+    return {"message": "Quiz created successfully"}
 
-        # Authorization check using CommunityService
-        community_service.assert_user_is_owner(str(quiz.community_id), current_user["sub"])
+@app.get("/quizzes/{quiz_id}")
+@requires_member('community_id')
+async def get_quiz(quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    community_id = quiz_metadata['community_id']
+    questions, _ = await quiz_service.get_questions_by_quiz_id(community_id, str(quiz_id))
+    return {"metadata": quiz_metadata, "questions": questions}
 
-        existing_quiz = quiz_service.get_quiz(str(quiz.community_id), str(quiz.quiz_id))
-        if existing_quiz:
-            logger.error(f"Quiz ID {quiz.quiz_id} already exists")
-            raise HTTPException(status_code=400, detail="Quiz ID already exists")
+@app.get("/quizzes/")
+async def list_quizzes(
+    community_id: str,
+    current_user: dict = Depends(get_current_user),
+    limit: int = Query(10, description="Number of quizzes to return"),
+    last_evaluated_key: str = Query(None, description="Token for pagination")
+):
+    quizzes, next_token = await quiz_service.list_quizzes(community_id, limit, last_evaluated_key)
+    return {"quizzes": quizzes, "next_token": next_token}
 
-        quiz_service.create_quiz(quiz)
-        logger.info(f"Quiz {quiz.quiz_id} created successfully")
-        return {"message": "Quiz created successfully"}
-    except ClientError as e:
-        logger.error(f"Error creating quiz: {e}")
-        raise HTTPException(status_code=500, detail="Error creating quiz")
-    except Exception as e:
-        logger.error(f"Unexpected error creating quiz: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+@app.put("/quizzes/{quiz_id}")
+@requires_quiz_owner('quiz_id')
+async def update_quiz(quiz_id: UUID4, quiz_data: QuizUpdate, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    await quiz_service.update_quiz(quiz_id, quiz_data)
+    return {"message": "Quiz updated successfully"}
 
-@app.put("/quizzes/{community_id}/{quiz_id}")
-def update_quiz(community_id: UUID4, quiz_id: UUID4, quiz: QuizUpdate, current_user: dict = Depends(get_current_user)):
-    try:
-        logger.info(f"Received request to update quiz with ID: {quiz_id}")
+@app.delete("/quizzes/{quiz_id}")
+@requires_quiz_owner('quiz_id')
+async def delete_quiz(quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    await quiz_service.delete_quiz(str(quiz_id))
+    return {"message": "Quiz deleted successfully"}
 
-        # Authorization check using CommunityService
-        community_service.assert_user_is_owner(str(community_id), current_user["sub"])
+@app.post("/quizzes/{quiz_id}/questions/")
+@requires_quiz_owner('quiz_id')
+async def create_question(quiz_id: UUID4, question_data: QuestionModel, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    await quiz_service.create_question(quiz_metadata['community_id'], str(quiz_id), question_data)
+    return {"message": "Question created successfully"}
 
-        existing_quiz = quiz_service.get_quiz(str(community_id), str(quiz_id))
-        if not existing_quiz:
-            logger.error(f"Quiz {quiz_id} not found")
-            raise HTTPException(status_code=404, detail="Quiz not found")
+@app.get("/quizzes/{quiz_id}/questions/{question_id}")
+@requires_member('community_id')
+async def get_question(quiz_id: UUID4, question_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    question = await quiz_service.get_question(quiz_metadata['community_id'], str(quiz_id), str(question_id))
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    return question
 
-        quiz_service.update_quiz(str(community_id), str(quiz_id), quiz.dict(exclude_unset=True))
-        logger.info(f"Quiz {quiz_id} updated successfully")
-        return {"message": "Quiz updated successfully"}
-    except ClientError as e:
-        logger.error(f"Error updating quiz: {e}")
-        raise HTTPException(status_code=500, detail="Error updating quiz")
-    except Exception as e:
-        logger.error(f"Unexpected error updating quiz: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+@app.put("/quizzes/{quiz_id}/questions/{question_id}")
+@requires_quiz_owner('quiz_id')
+async def update_question(quiz_id: UUID4, question_id: UUID4, question_data: QuestionModel, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    await quiz_service.update_question(quiz_metadata['community_id'], str(quiz_id), str(question_id), question_data)
+    return {"message": "Question updated successfully"}
 
-@app.delete("/quizzes/{community_id}/{quiz_id}")
-def delete_quiz(community_id: UUID4, quiz_id: UUID4, current_user: dict = Depends(get_current_user)):
-    try:
-        logger.info(f"Received request to delete quiz with ID: {quiz_id}")
+@app.delete("/quizzes/{quiz_id}/questions/{question_id}")
+@requires_quiz_owner('quiz_id')
+async def delete_question(quiz_id: UUID4, question_id: UUID4, current_user: dict = Depends(get_current_user)):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    await quiz_service.delete_question(quiz_metadata['community_id'], str(quiz_id), str(question_id))
+    return {"message": "Question deleted successfully"}
 
-        # Authorization check using CommunityService
-        community_service.assert_user_is_owner(str(community_id), current_user["sub"])
-
-        quiz = quiz_service.get_quiz(str(community_id), str(quiz_id))
-        if not quiz:
-            logger.error(f"Quiz {quiz_id} not found")
-            raise HTTPException(status_code=404, detail="Quiz not found")
-        quiz_service.delete_quiz(str(community_id), str(quiz_id))
-        logger.info(f"Quiz {quiz_id} deleted successfully")
-        return {"message": "Quiz deleted successfully"}
-    except ClientError as e:
-        logger.error(f"Error deleting quiz: {e}")
-        raise HTTPException(status_code=500, detail="Error deleting quiz")
-    except Exception as e:
-        logger.error(f"Unexpected error deleting quiz: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+@app.get("/quizzes/{quiz_id}/questions")
+@requires_member('community_id')
+async def get_quiz_questions(
+    quiz_id: UUID4,
+    current_user: dict = Depends(get_current_user),
+    limit: int = Query(10, description="Number of questions to return"),
+    last_evaluated_key: str = Query(None, description="Token for pagination")
+):
+    quiz_metadata = await quiz_service.get_quiz_metadata(str(quiz_id))
+    if not quiz_metadata:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    questions, next_token = await quiz_service.get_questions_by_quiz_id(quiz_metadata['community_id'], str(quiz_id), limit, last_evaluated_key)
+    return {"questions": questions, "next_token": next_token}
 
 handler = Mangum(app)
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)

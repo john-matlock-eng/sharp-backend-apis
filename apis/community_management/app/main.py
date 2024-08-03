@@ -6,7 +6,7 @@ from pydantic import UUID4
 import os
 import logging
 from botocore.exceptions import ClientError
-from app.services.community_service import CommunityService
+from app.services.community_service import CommunityService, requires_owner, requires_member
 from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
@@ -53,6 +53,7 @@ def list_communities(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/communities/{community_id}")
+@requires_member('community_id')
 def read_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to read community with ID: {community_id}")
@@ -94,6 +95,7 @@ def create_community(community: CommunityCreate, current_user: dict = Depends(ge
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.put("/communities/{community_id}")
+@requires_owner('community_id')
 def update_community(community_id: UUID4, community: CommunityUpdate, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to update community with ID: {community_id}")
@@ -115,6 +117,7 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.delete("/communities/{community_id}")
+@requires_owner('community_id')
 def delete_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to delete community with ID: {community_id}")
@@ -133,6 +136,7 @@ def delete_community(community_id: UUID4, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.post("/communities/{community_id}/owners/")
+@requires_owner('community_id')
 def add_owners(community_id: UUID4, owner: OwnerAdd, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to add owner to community with ID: {community_id}")
@@ -147,6 +151,7 @@ def add_owners(community_id: UUID4, owner: OwnerAdd, current_user: dict = Depend
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.delete("/communities/{community_id}/owners/{user_id}")
+@requires_owner('community_id')
 def remove_owners(community_id: UUID4, user_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to remove owner {user_id} from community {community_id}")
@@ -161,6 +166,7 @@ def remove_owners(community_id: UUID4, user_id: UUID4, current_user: dict = Depe
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.post("/communities/{community_id}/members/")
+@requires_owner('community_id')
 def add_members(community_id: UUID4, member: MemberAdd, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to add member to community with ID: {community_id}")
@@ -175,6 +181,7 @@ def add_members(community_id: UUID4, member: MemberAdd, current_user: dict = Dep
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.delete("/communities/{community_id}/members/{user_id}")
+@requires_owner('community_id')
 def remove_members(community_id: UUID4, user_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to remove member {user_id} from community {community_id}")
