@@ -1,22 +1,23 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, UUID4
 from typing import List, Optional
-from datetime import datetime, timezone
-from uuid import UUID
 
 class QuestionModel(BaseModel):
+    question_id: UUID4
     question_text: str
     options: List[str]
     answer: List[str]
 
-class QuizCreate(BaseModel):
-    quiz_id: UUID
-    community_id: UUID
+class QuizMetadataModel(BaseModel):
+    quiz_id: UUID4
+    community_id: UUID4
     topic: str
-    description: str
-    questions: List[QuestionModel]
-    created_at: int = Field(default_factory=lambda: int(datetime.now(timezone.utc).timestamp()))
-
-class QuizUpdate(BaseModel):
-    topic: Optional[str]
     description: Optional[str]
+    created_at: int
+
+class QuizCreateModel(BaseModel):
+    metadata: QuizMetadataModel
+    questions: List[QuestionModel]
+
+class QuizUpdateModel(BaseModel):
+    metadata: Optional[QuizMetadataModel]
     questions: Optional[List[QuestionModel]]

@@ -1,12 +1,8 @@
-import logging
-from fastapi import HTTPException
 from functools import wraps
-from typing import Dict, Any, List
-from boto3.dynamodb.conditions import Key
+from fastapi import HTTPException, Depends
+from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
-from app.models.community_member_model import CommunityMemberModel
-from app.models.community_schema import CommunityCreate
-
+from typing import Dict, Any, List
 
 class CommunityService:
     def __init__(self, dynamodb_controller: DynamoDBController):
@@ -36,6 +32,26 @@ class CommunityService:
     def delete_community(self, community_id: str) -> None:
         self.dynamodb_controller.delete_item('COMMUNITY', f'COMMUNITY#{community_id}')
 
+    def is_user_owner(self, community_id: str, user_id: str) -> bool:
+        community = self.get_community(community_id)
+        if not community:
+            raise HTTPException(status_code=404, detail="Community not found")
+        return user_id in community['owner_ids']
+
+    def assert_user_is_owner(self, community_id: str, user_id: str):
+        if not self.is_user_owner(community_id, user_id):
+            raise HTTPException(status_code=403, detail="User is not authorized for this action")
+
+    def is_user_member(self, community_id: str, user_id: str) -> bool:
+        community = self.get_community(community_id)
+        if not community:
+            raise HTTPException(status_code=404, detail="Community not found")
+        return user_id in community['members']
+
+    def assert_user_is_member(self, community_id: str, user_id: str):
+        if not self.is_user_member(community_id, user_id):
+            raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
+
     def add_owner(self, community_id: str, owner_id: str) -> None:
         self.dynamodb_controller.update_item(f'COMMUNITY#{community_id}', 'DETAILS', {'OwnerID': owner_id})
 
@@ -54,12 +70,33 @@ class CommunityService:
         sort_key_condition = Key('SK').begins_with('COMMUNITY#')
         return self.dynamodb_controller.query_with_pagination(partition_key, sort_key_condition)[0]
 
-    def is_user_owner(self, community_id: str, user_id: str) -> bool:
-        community = self.get_community(community_id)
-        if not community:
-            raise HTTPException(status_code=404, detail="Community not found")
-        return user_id in community['owner_ids']
 
-    def assert_user_is_owner(self, community_id: str, user_id: str):
-        if not self.is_user_owner(community_id, user_id):
-            raise HTTPException(status_code=403, detail="User is not authorized for this action")
+def requires_owner(community_id_param: str):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            community_id = kwargs.get(community_id_param)
+            current_user = kwargs.get('current_user')
+            community_service = kwargs.get('community_service')
+            
+            if not community_service.is_user_owner(community_id, current_user['user_id']):
+                raise HTTPException(status_code=403, detail="User is not authorized for this action")
+            
+            return await func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def requires_member(community_id_param: str):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            community_id = kwargs.get(community_id_param)
+            current_user = kwargs.get('current_user')
+            community_service = kwargs.get('community_service')
+            
+            if not community_service.is_user_member(community_id, current_user['user_id']):
+                raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
+            
+            return await func(*args, **kwargs)
+        return wrapper
+    return decorator
