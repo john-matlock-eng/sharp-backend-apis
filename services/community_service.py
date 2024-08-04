@@ -2,6 +2,10 @@ from functools import wraps
 from fastapi import HTTPException
 from app.lib.dynamodb_controller import DynamoDBController
 from app.services.quiz_service import QuizService
+from app.models.community_schema import CommunityCreate
+from app.models.community_member_schema import CommunityMemberModel
+from boto3.dynamodb.conditions import Key
+
 from typing import Dict, Any, List
 
 class CommunityService:
