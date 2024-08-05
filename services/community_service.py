@@ -1,12 +1,16 @@
 import logging
+import os
+import asyncio
 from functools import wraps
+from typing import Dict, Any, List
+
 from fastapi import HTTPException
+from boto3.dynamodb.conditions import Key
+
 from app.lib.dynamodb_controller import DynamoDBController
+from app.lib.logging import log_and_handle_exceptions
 from app.models.community_schema import CommunityCreate
 from app.models.community_member_schema import CommunityMemberModel
-from boto3.dynamodb.conditions import Key
-from typing import Dict, Any, List
-from app.lib.logging import log_and_handle_exceptions
 
 
 class CommunityService:
@@ -56,7 +60,7 @@ class CommunityService:
 
     @log_and_handle_exceptions
     def is_user_member(self, community_id: str, user_id: str) -> bool:
-        logging.info(f"Checking if user {user_id} is a member of community {community_id}")
+        self.logger.info(f"Checking if user {user_id} is a member of community {community_id}")
         community = self.get_community(community_id)
         if not community:
             raise HTTPException(status_code=404, detail="Community not found")
@@ -90,58 +94,108 @@ class CommunityService:
         sort_key_condition = Key('SK').begins_with('COMMUNITY#')
         return self.dynamodb_controller.query_with_pagination(partition_key, sort_key_condition)[0]
 
-
 def requires_owner(community_id_param: str):
     def decorator(func):
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def async_wrapper(*args, **kwargs):
             community_id = kwargs.get(community_id_param)
             current_user = kwargs.get('current_user')
-            community_service = kwargs.get('community_service')
-            
+            community_service: CommunityService = kwargs.get('community_service')
+
             if not community_service.is_user_owner(community_id, current_user['sub']):
                 raise HTTPException(status_code=403, detail="User is not authorized for this action")
-            
+
             return await func(*args, **kwargs)
-        return wrapper
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            community_id = kwargs.get(community_id_param)
+            current_user = kwargs.get('current_user')
+            community_service: CommunityService = kwargs.get('community_service')
+
+            if not community_service.is_user_owner(community_id, current_user['sub']):
+                raise HTTPException(status_code=403, detail="User is not authorized for this action")
+
+            return func(*args, **kwargs)
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
+
     return decorator
 
 def requires_member(community_id_param: str):
     def decorator(func):
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def async_wrapper(*args, **kwargs):
             community_id = kwargs.get(community_id_param)
             current_user = kwargs.get('current_user')
-            community_service = kwargs.get('community_service')
-            
+            community_service: CommunityService = kwargs.get('community_service')
+
             if not community_service.is_user_member(community_id, current_user['sub']):
                 raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
-            
+
             return await func(*args, **kwargs)
-        return wrapper
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            community_id = kwargs.get(community_id_param)
+            current_user = kwargs.get('current_user')
+            community_service: CommunityService = kwargs.get('community_service')
+
+            if not community_service.is_user_member(community_id, current_user['sub']):
+                raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
+
+            return func(*args, **kwargs)
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
+
     return decorator
 
 def requires_quiz_owner():
     def decorator(func):
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def async_wrapper(*args, **kwargs):
             quiz_id = kwargs.get('quiz_id')
             current_user = kwargs.get('current_user')
-            quiz_service = kwargs.get('quiz_service', QuizService)
-            
-            # Retrieve quiz metadata
+            quiz_service = kwargs.get('quiz_service')
+
             quiz_metadata = await quiz_service.get_quiz_metadata(quiz_id)
             if not quiz_metadata:
                 raise HTTPException(status_code=404, detail="Quiz not found")
-            
-            # Check if the user is in the owner_ids
-            if current_user['user_id'] not in quiz_metadata['owner_ids']:
+
+            if current_user['sub'] not in quiz_metadata['owner_ids']:
                 raise HTTPException(status_code=403, detail="User is not authorized for this action")
-            
+
             return await func(*args, **kwargs)
-        return wrapper
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            quiz_id = kwargs.get('quiz_id')
+            current_user = kwargs.get('current_user')
+            quiz_service = kwargs.get('quiz_service')
+
+            quiz_metadata = quiz_service.get_quiz_metadata(quiz_id)
+            if not quiz_metadata:
+                raise HTTPException(status_code=404, detail="Quiz not found")
+
+            if current_user['sub'] not in quiz_metadata['owner_ids']:
+                raise HTTPException(status_code=403, detail="User is not authorized for this action")
+
+            return func(*args, **kwargs)
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
+
     return decorator
 
 def get_community_service() -> CommunityService:
-    dynamodb_controller = DynamoDBController()
+    table_name = os.getenv('TABLE_NAME', 'sharp_app_data')
+    dynamodb_controller = DynamoDBController(table_name)
     return CommunityService(dynamodb_controller)
