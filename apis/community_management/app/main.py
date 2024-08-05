@@ -6,7 +6,12 @@ from pydantic import UUID4
 import os
 import logging
 from botocore.exceptions import ClientError
-from app.services.community_service import CommunityService, requires_owner, requires_member
+from app.services.community_service import (
+    CommunityService,
+    requires_owner,
+    requires_member,
+    get_community_service
+)
 from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.community_schema import CommunityCreate, CommunityUpdate, OwnerAdd, MemberAdd
@@ -28,11 +33,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize DynamoDB controller and community service
-table_name = os.getenv('TABLE_NAME', 'sharp_app_data')
-dynamodb_controller = DynamoDBController(table_name)
-community_service = CommunityService(dynamodb_controller)
+# Function to get the DynamoDBController instance
+def get_community_service() -> CommunityService:
+    table_name = os.getenv('TABLE_NAME', 'sharp_app_data')
+    dynamodb_controller = DynamoDBController(table_name)
+    return CommunityService(dynamodb_controller)
 
+# Define routes and business logic
 @app.get("/")
 def read_root():
     logger.info("Root endpoint called")
@@ -42,6 +49,7 @@ def read_root():
 def list_communities(current_user: dict = Depends(get_current_user)):
     try:
         logger.info("Received request to list communities")
+        community_service = get_community_service()
         communities = community_service.list_communities()
         logger.info("Communities listed successfully")
         return {"communities": communities}
@@ -54,7 +62,11 @@ def list_communities(current_user: dict = Depends(get_current_user)):
 
 @app.get("/communities/{community_id}")
 @requires_member('community_id')
-def read_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
+def read_community(
+    community_id: UUID4,
+    current_user: dict = Depends(get_current_user),
+    community_service: CommunityService = Depends(get_community_service)
+):
     try:
         logger.info(f"Received request to read community with ID: {community_id}")
         community = community_service.get_community(str(community_id))
@@ -74,7 +86,8 @@ def read_community(community_id: UUID4, current_user: dict = Depends(get_current
 def create_community(community: CommunityCreate, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to create community with ID: {community.community_id}")
-        
+        community_service = get_community_service()
+
         community.owner_ids.append(current_user["sub"])
 
         logger.debug(f"Community data: {community}")
@@ -100,6 +113,7 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
     try:
         logger.info(f"Received request to update community with ID: {community_id}")
         logger.debug(f"Update data: {community}")
+        community_service = get_community_service()
 
         existing_community = community_service.get_community(str(community_id))
         if not existing_community:
@@ -121,6 +135,7 @@ def update_community(community_id: UUID4, community: CommunityUpdate, current_us
 def delete_community(community_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to delete community with ID: {community_id}")
+        community_service = get_community_service()
         community = community_service.get_community(str(community_id))
         if not community:
             logger.error(f"Community {community_id} not found")
@@ -140,6 +155,7 @@ def delete_community(community_id: UUID4, current_user: dict = Depends(get_curre
 def add_owners(community_id: UUID4, owner: OwnerAdd, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to add owner to community with ID: {community_id}")
+        community_service = get_community_service()
         community_service.add_owner(str(community_id), owner.user_id)
         logger.info(f"Owner {owner.user_id} added to community {community_id} successfully")
         return {"message": "Owner added successfully"}
@@ -155,6 +171,7 @@ def add_owners(community_id: UUID4, owner: OwnerAdd, current_user: dict = Depend
 def remove_owners(community_id: UUID4, user_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to remove owner {user_id} from community {community_id}")
+        community_service = get_community_service()
         community_service.remove_owner(str(community_id), str(user_id))
         logger.info(f"Owner {user_id} removed from community {community_id} successfully")
         return {"message": "Owner removed successfully"}
@@ -170,6 +187,7 @@ def remove_owners(community_id: UUID4, user_id: UUID4, current_user: dict = Depe
 def add_members(community_id: UUID4, member: MemberAdd, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to add member to community with ID: {community_id}")
+        community_service = get_community_service()
         community_service.add_member(str(community_id), member)
         logger.info(f"Member {member.user_id} added to community {community_id} successfully")
         return {"message": "Member added successfully"}
@@ -185,6 +203,7 @@ def add_members(community_id: UUID4, member: MemberAdd, current_user: dict = Dep
 def remove_members(community_id: UUID4, user_id: UUID4, current_user: dict = Depends(get_current_user)):
     try:
         logger.info(f"Received request to remove member {user_id} from community {community_id}")
+        community_service = get_community_service()
         community_service.remove_member(str(community_id), str(user_id))
         logger.info(f"Member {user_id} removed from community {community_id} successfully")
         return {"message": "Member removed successfully"}
@@ -195,7 +214,9 @@ def remove_members(community_id: UUID4, user_id: UUID4, current_user: dict = Dep
         logger.error(f"Unexpected error removing member: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+# AWS Lambda handler
 handler = Mangum(app)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
