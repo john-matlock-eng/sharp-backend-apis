@@ -126,12 +126,13 @@ def requires_owner(community_id_param: str):
     return decorator
 
 def requires_member(community_id_param: str):
+    logging.info(f"requires_member decorator called with community_id_param: {community_id_param}")
     def decorator(func):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             community_id = kwargs.get(community_id_param)
             current_user = kwargs.get('current_user')
-            community_service: CommunityService = kwargs.get('community_service')
+            community_service: CommunityService = get_community_service()
 
             if not community_service.is_user_member(community_id, current_user['sub']):
                 raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
@@ -156,11 +157,10 @@ def requires_member(community_id_param: str):
 
     return decorator
 
-def requires_quiz_owner():
+def requires_quiz_owner(quiz_id: str):
     def decorator(func):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
-            quiz_id = kwargs.get('quiz_id')
             current_user = kwargs.get('current_user')
             quiz_service = kwargs.get('quiz_service')
 

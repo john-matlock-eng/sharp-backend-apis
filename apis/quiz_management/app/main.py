@@ -6,12 +6,11 @@ import os
 import logging
 from mangum import Mangum
 from app.services.quiz_service import QuizService
-from app.services.community_service import CommunityService, requires_member
+from app.services.community_service import CommunityService, requires_member, requires_quiz_owner
 from app.services.cognito_service import get_current_user
 from app.lib.dynamodb_controller import DynamoDBController
 from app.models.quiz_schema import QuizCreate, QuizUpdate
 from app.models.question_schema import QuestionModel
-from app.services.auth_security import requires_quiz_owner
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -36,9 +35,10 @@ dynamodb_controller = DynamoDBController(table_name)
 quiz_service = QuizService(dynamodb_controller)
 community_service = CommunityService(dynamodb_controller)
 
-@app.post("/quizzes/")
+@app.post("/community/{community_id}/quizzes/")
 @requires_member('community_id')
-async def create_quiz(quiz_data: QuizCreate, current_user: dict = Depends(get_current_user)):
+async def create_quiz(quiz_data: QuizCreate, current_user: dict = Depends(get_current_user), community_id: str = None):
+    logger.info(f"Creating quiz for community {community_id}")
     quiz_data.owner_ids = [current_user["sub"]]
     await quiz_service.create_quiz(quiz_data)
     return {"message": "Quiz created successfully"}
