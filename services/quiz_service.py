@@ -5,6 +5,7 @@ from app.lib.dynamodb_controller import DynamoDBController
 from app.models.quiz_schema import QuizCreate, QuizUpdate
 from app.models.question_schema import QuestionModel
 from app.lib.logging import log_and_handle_exceptions
+from datetime import datetime, timezone
 
 class QuizService:
     def __init__(self, dynamodb_controller: DynamoDBController):
@@ -17,7 +18,7 @@ class QuizService:
             'PK': 'COMMUNITY',
             'SK': f'COMMUNITY#{quiz.community_id}#QUIZ#{quiz.quiz_id}',
             'EntityType': 'Quiz',
-            'CreatedAt': quiz.created_at,
+            'CreatedAt': int(datetime.now(timezone.utc).timestamp()),
             'quiz_id': str(quiz.quiz_id),
             'community_id': str(quiz.community_id),
             'topic': quiz.topic,
