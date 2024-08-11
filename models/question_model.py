@@ -10,6 +10,9 @@ class QuestionCreate(QuestionBase):
     question_id: UUID4
     quiz_id: UUID4
     community_id: UUID4
+    options: List[str]
+    answer: List[str]
+    question_text: str
 
 class QuestionUpdate(BaseModel):
     question_text: Optional[str] = None

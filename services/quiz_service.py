@@ -6,6 +6,7 @@ from app.models.quiz_schema import QuizCreate, QuizUpdate
 from app.models.question_schema import QuestionModel
 from app.lib.logging import log_and_handle_exceptions
 from datetime import datetime, timezone
+import os
 
 class QuizService:
     def __init__(self, dynamodb_controller: DynamoDBController):
@@ -15,25 +16,31 @@ class QuizService:
     @log_and_handle_exceptions
     def create_quiz(self, quiz: QuizCreate) -> None:
         item = {
-            'PK': 'COMMUNITY',
+            'PK': 'QUIZ',
             'SK': f'COMMUNITY#{quiz.community_id}#QUIZ#{quiz.quiz_id}',
             'EntityType': 'Quiz',
             'CreatedAt': int(datetime.now(timezone.utc).timestamp()),
             'quiz_id': str(quiz.quiz_id),
             'community_id': str(quiz.community_id),
-            'topic': quiz.topic,
+            'title': quiz.title,
             'description': quiz.description,
+            'owner_ids': [str(owner_id) for owner_id in quiz.owner_ids],
         }
         self.dynamodb_controller.put_item(item)
 
     @log_and_handle_exceptions
-    def get_quiz_metadata(self, quiz_id: str) -> Dict[str, Any]:
-        sk = f'QUIZ#{quiz_id}'
-        return self.dynamodb_controller.get_item('QUIZ', sk)
+    def get_quiz_metadata(self, community_id: str, quiz_id: str) -> Dict[str, Any]:
+        partition_key = Key('PK').eq('QUIZ')
+        sort_key_condition = Key('SK').eq(f'COMMUNITY#{community_id}#QUIZ#{quiz_id}')
+        quizzes = self.dynamodb_controller.query_with_pagination(partition_key, sort_key_condition)[0]
+        if not quizzes:
+            return None
+        return quizzes[0]
+
 
     @log_and_handle_exceptions
     def update_quiz(self, quiz_id: str, quiz_data: QuizUpdate) -> None:
-        sk = f'QUIZ#{quiz_id}'
+        sk = f'COMMUNITY#{quiz_data.community_id}#QUIZ#{quiz_id}'
         update_data = quiz_data.dict(exclude_unset=True)
         self.dynamodb_controller.update_item('QUIZ', sk, update_data)
 
@@ -44,7 +51,7 @@ class QuizService:
         
         # Then, delete the quiz metadata
         sk = f'COMMUNITY#{community_id}#QUIZ#{quiz_id}'
-        self.dynamodb_controller.delete_item('COMMUNITY', sk)
+        self.dynamodb_controller.delete_item('QUIZ', sk)
 
     @log_and_handle_exceptions
     def list_quizzes(self, community_id: str, limit: int = 10, last_evaluated_key: Optional[str] = None) -> (List[Dict[str, Any]], Optional[str]):
@@ -72,6 +79,7 @@ class QuizService:
             'question_text': question_data.question_text,
             'options': question_data.options,
             'answer': question_data.answer,
+            'CreatedAt': int(datetime.now(timezone.utc).timestamp())
         }
         self.dynamodb_controller.put_item(item)
 
@@ -108,3 +116,8 @@ class QuizService:
             
             if not last_evaluated_key:
                 break
+
+def get_quiz_service() -> QuizService:
+    table_name = os.getenv('TABLE_NAME', 'sharp_app_data')
+    dynamodb_controller = DynamoDBController(table_name)
+    return QuizService(dynamodb_controller)

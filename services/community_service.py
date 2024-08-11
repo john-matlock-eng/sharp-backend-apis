@@ -11,6 +11,7 @@ from app.lib.dynamodb_controller import DynamoDBController
 from app.lib.logging import log_and_handle_exceptions
 from app.models.community_schema import CommunityCreate
 from app.models.community_member_schema import CommunityMemberModel
+from app.services.quiz_service import QuizService
 
 
 class CommunityService:
@@ -126,13 +127,12 @@ def requires_owner(community_id_param: str):
     return decorator
 
 def requires_member(community_id_param: str):
-    logging.info(f"requires_member decorator called with community_id_param: {community_id_param}")
     def decorator(func):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             community_id = kwargs.get(community_id_param)
             current_user = kwargs.get('current_user')
-            community_service: CommunityService = get_community_service()
+            community_service: CommunityService = kwargs.get('community_service', get_community_service())
 
             if not community_service.is_user_member(community_id, current_user['sub']):
                 raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
@@ -143,7 +143,7 @@ def requires_member(community_id_param: str):
         def sync_wrapper(*args, **kwargs):
             community_id = kwargs.get(community_id_param)
             current_user = kwargs.get('current_user')
-            community_service: CommunityService = kwargs.get('community_service')
+            community_service: CommunityService = kwargs.get('community_service', get_community_service())
 
             if not community_service.is_user_member(community_id, current_user['sub']):
                 raise HTTPException(status_code=403, detail="User is not authorized to view this resource")
@@ -157,14 +157,21 @@ def requires_member(community_id_param: str):
 
     return decorator
 
-def requires_quiz_owner(quiz_id: str):
+from fastapi import Depends
+
+def requires_quiz_owner(community_id_param: str, quiz_id_param: str):
     def decorator(func):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
+            community_id = kwargs.get(community_id_param)
+            quiz_id = kwargs.get(quiz_id_param)
             current_user = kwargs.get('current_user')
-            quiz_service = kwargs.get('quiz_service')
+            quiz_service: QuizService = kwargs.get('quiz_service')
 
-            quiz_metadata = await quiz_service.get_quiz_metadata(quiz_id)
+            if not quiz_service:
+                raise HTTPException(status_code=500, detail="Quiz service not initialized")
+
+            quiz_metadata = await quiz_service.get_quiz_metadata(community_id, quiz_id)
             if not quiz_metadata:
                 raise HTTPException(status_code=404, detail="Quiz not found")
 
@@ -175,11 +182,15 @@ def requires_quiz_owner(quiz_id: str):
 
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
-            quiz_id = kwargs.get('quiz_id')
+            community_id = kwargs.get(community_id_param)
+            quiz_id = kwargs.get(quiz_id_param)
             current_user = kwargs.get('current_user')
-            quiz_service = kwargs.get('quiz_service')
+            quiz_service: QuizService = kwargs.get('quiz_service')
 
-            quiz_metadata = quiz_service.get_quiz_metadata(quiz_id)
+            if not quiz_service:
+                raise HTTPException(status_code=500, detail="Quiz service not initialized")
+
+            quiz_metadata = quiz_service.get_quiz_metadata(community_id, quiz_id)
             if not quiz_metadata:
                 raise HTTPException(status_code=404, detail="Quiz not found")
 
@@ -194,6 +205,7 @@ def requires_quiz_owner(quiz_id: str):
             return sync_wrapper
 
     return decorator
+
 
 def get_community_service() -> CommunityService:
     table_name = os.getenv('TABLE_NAME', 'sharp_app_data')
