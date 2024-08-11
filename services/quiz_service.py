@@ -54,9 +54,10 @@ class QuizService:
         self.dynamodb_controller.delete_item('QUIZ', sk)
 
     @log_and_handle_exceptions
-    def list_quizzes(self, community_id: str, limit: int = 10, last_evaluated_key: Optional[str] = None) -> (List[Dict[str, Any]], Optional[str]):
-        partition_key = Key('PK').eq('COMMUNITY')
+    def list_quizzes(self, community_id: str, limit: int = 10, last_evaluated_key: Optional[str] = None) -> (List[Dict[str, Any]], Optional[str]): # type: ignore
+        partition_key = Key('PK').eq('QUIZ')
         sort_key_condition = Key('SK').begins_with(f'COMMUNITY#{community_id}#QUIZ#')
+        print(partition_key, sort_key_condition)
         quizzes, next_token = self.dynamodb_controller.query_with_pagination(partition_key, sort_key_condition, limit=limit, last_evaluated_key=last_evaluated_key)
         return quizzes, next_token
 
