@@ -7,6 +7,7 @@ from app.models.question_schema import QuestionModel
 from app.lib.logging import log_and_handle_exceptions
 from datetime import datetime, timezone
 import os
+from uuid import UUID
 
 class QuizService:
     def __init__(self, dynamodb_controller: DynamoDBController):
@@ -80,7 +81,8 @@ class QuizService:
             'question_text': question_data.question_text,
             'options': question_data.options,
             'answer': question_data.answer,
-            'CreatedAt': int(datetime.now(timezone.utc).timestamp())
+            'CreatedAt': int(datetime.now(timezone.utc).timestamp()),
+            "type": question_data.type
         }
         self.dynamodb_controller.put_item(item)
 
@@ -92,7 +94,12 @@ class QuizService:
     @log_and_handle_exceptions
     def update_question(self, community_id: str, quiz_id: str, question_id: str, question_data: QuestionModel) -> None:
         sk = f'COMMUNITY#{community_id}#QUIZ#{quiz_id}#QUESTION#{question_id}'
-        update_data = question_data.dict(exclude_unset=True)
+        
+        update_data = {
+            key: str(value) if isinstance(value, UUID) else value
+            for key, value in question_data.dict(exclude_unset=True).items()
+        }
+    
         self.dynamodb_controller.update_item('QUESTION', sk, update_data)
 
     @log_and_handle_exceptions
