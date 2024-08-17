@@ -13,6 +13,7 @@ class QuestionCreate(QuestionBase):
     options: List[str]
     answer: List[str]
     question_text: str
+    question_type: str
 
 class QuestionUpdate(BaseModel):
     question_text: Optional[str] = None

@@ -8,3 +8,4 @@ class QuestionModel(BaseModel):
     question_text: str
     options: List[str]
     answer: List[str]
+    question_type: str
