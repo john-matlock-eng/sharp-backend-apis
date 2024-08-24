@@ -1,6 +1,15 @@
 fastapi
-uvicorn[standard]
 mangum
-python-jose
+pydantic
+boto3
+python-dotenv
+uvicorn
+beautifulsoup4
+lxml
+newspaper3k
 requests
+httpx
+nltk
+openai
+python-jose
 pynamodb

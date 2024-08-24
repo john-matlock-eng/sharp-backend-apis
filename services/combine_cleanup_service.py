@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, List, Any, Optional
-from lib.openai_controller import OpenAIController, get_openai_controller
+from app.lib.openai_controller import OpenAIController, get_openai_controller
 
 class CombinationCleanupService:
     def __init__(self, openai_controller: Optional[OpenAIController] = None):

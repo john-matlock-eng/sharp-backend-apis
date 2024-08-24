@@ -1,7 +1,7 @@
 import logging
 import json
 from typing import Optional, Dict, Any, List
-from lib.openai_controller import OpenAIController, get_openai_controller
+from app.lib.openai_controller import OpenAIController, get_openai_controller
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tenacity
 import re
