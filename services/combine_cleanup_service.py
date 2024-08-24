@@ -111,15 +111,17 @@ class CombinationCleanupService:
                 " 'relevant_quotations': ['AI and ML are transforming healthcare by improving diagnostic precision.'], "
                 " 'external_links': ['https://example.com/ai-healthcare', 'https://example.com/ml-healthcare'] "
                 "}"
-                "Finally, minifi your response, use double quores for property names, and do not include any line breaks or newline characters in the json. "
-            )
+                "Finally, minify your response, use double quotes for property names, and do not include any line breaks or newline characters in the JSON."
+)
 
             user_message = f"Please clean up and uniqueify the following content: {combined_response}"
 
             prompt = self.openai_controller.generate_prompt(system_message, user_message)
             cleaned_response = self.openai_controller.get_response(prompt)
-
-            return cleaned_response
+            response_text = cleaned_response.get('response', '').strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:-3] 
+            return response_text
 
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}")

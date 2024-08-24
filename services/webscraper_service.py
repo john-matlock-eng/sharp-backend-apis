@@ -1,7 +1,7 @@
-import re
 from newspaper import Article
 from typing import Optional
 import logging
+import re
 
 class WebScraperService:
     def __init__(self):
@@ -10,6 +10,9 @@ class WebScraperService:
     def scrape_content(self, url: str) -> Optional[str]:
         """Scrapes the main content of the web page from the given URL using newspaper3k."""
         try:
+            # Ensure the URL is a string (especially important if using Pydantic's HttpUrl)
+            url = str(url)
+            
             article = Article(url)
             article.download()
             article.parse()
