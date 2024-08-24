@@ -48,7 +48,6 @@ async def process_url(
     # Step 2: Process the content
     system_message = (
         "You are a highly skilled educational assistant tasked with extracting, synthesizing, and organizing key information from complex content to serve as an educational tool for generating quiz questions, study materials, and comprehensive content summaries. Your goal is to deliver precise, structured, and comprehensive outputs that ensure thorough coverage of the content, including detailed metadata and core insights."
-        
         "1. Identify the Author(s): Determine who created or contributed to the content. If multiple authors are mentioned, list them all. If no explicit author is found but the content is from an official source (e.g., company documentation), infer the organization or team responsible (e.g., 'AWS Documentation Team'). If no author can be identified, return 'unknown'."
         "2. Determine the Publication/Site: Identify the website or source where the content is published. This is often found in the URL, header, or footer of the page. Use the organization or publication name if the exact site is unclear. If the site cannot be determined, return 'unknown'."
         "3. Extract the Publish Date: Look for the publication date, usually near the title or byline. If the exact date is not clear, attempt to extract the last updated date from the documentation page. If no date is available, return 'unknown'."
