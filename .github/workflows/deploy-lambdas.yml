@@ -148,8 +148,8 @@ jobs:
         fi
     
         if [ -n "${{ env.env_vars }}" ]; then
-          # Properly format the environment variables JSON string
-          escaped_env_vars=$(echo "${{ env.env_vars }}" | jq -c .)
+          # Properly escape the JSON string
+          escaped_env_vars=$(echo '${{ env.env_vars }}' | jq -R -s -c @json)
           plan_command="$plan_command -var='environment_variables=$escaped_env_vars'"
         fi
     
@@ -158,6 +158,7 @@ jobs:
         echo "Running Terraform plan: $plan_command"
         eval $plan_command
       working-directory: ./terraform/lambdas
+    
 
     - name: Apply Terraform for Lambda
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
