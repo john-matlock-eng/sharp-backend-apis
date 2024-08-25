@@ -1,10 +1,12 @@
 name: Deploy Lambdas
 
 on:
-  workflow_run:
-    workflows: ["Deploy APIs"]
-    types:
-      - completed
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
