@@ -49,6 +49,9 @@ jobs:
       matrix:
         lambda_folder: ${{ fromJson(needs.lambda-discovery.outputs.lambda_folders) }}
 
+    outputs:
+      lambda_folder: ${{ matrix.lambda_folder }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -81,7 +84,7 @@ jobs:
 
     strategy:
       matrix:
-        lambda_folder: ${{ matrix.lambda_folder }}
+        lambda_folder: ${{ fromJson(needs.create-ecr.outputs.lambda_folder) }}
 
     steps:
     - name: Checkout code
