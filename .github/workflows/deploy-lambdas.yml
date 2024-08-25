@@ -1,0 +1,82 @@
+name: Deploy Lambdas
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  LAMBDA_DEPLOY_ROLE_ARN: ${{ secrets.LAMBDA_DEPLOY_ROLE_ARN }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  discover-lambdas:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda_folders: ${{ steps.discover_lambdas.outputs.lambda_folders }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Discover Lambda folders
+      id: discover_lambdas
+      run: |
+        if [ -d "./lambdas" ]; then
+          lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | sed 's|./lambdas/||' | jq -R -s -c 'split("\n")[:-1]')
+        else
+          lambda_folders="[]"
+        fi
+        echo "lambda_folders=$lambda_folders" >> $GITHUB_ENV
+        echo "lambda_folders=$lambda_folders" > $GITHUB_OUTPUT
+      shell: bash
+
+  build-and-deploy-lambdas:
+    needs: discover-lambdas
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        lambda_folder: ${{ fromJson(needs.discover-lambdas.outputs.lambda_folders) }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.LAMBDA_DEPLOY_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Log in to Amazon ECR
+      run: |
+        aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+    - name: Build and Push Lambda Docker image
+      run: |
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }} -f ./lambdas/${{ matrix.lambda_folder }}/Dockerfile .
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
+
+    - name: Initialize Terraform for Lambda
+      run: |
+        terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+      working-directory: ./terraform/lambdas/${{ matrix.lambda_folder }}
+
+    - name: Plan Terraform for Lambda
+      id: terraform_plan_lambda
+      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="image_tag=${{ github.sha }}" -out=tfplan.txt
+      working-directory: ./terraform/lambdas/${{ matrix.lambda_folder }}
+
+    - name: Apply Terraform for Lambda
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve tfplan.txt
+      working-directory: ./terraform/lambdas/${{ matrix.lambda_folder }}

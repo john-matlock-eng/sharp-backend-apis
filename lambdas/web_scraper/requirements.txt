@@ -1,0 +1,11 @@
+pydantic
+boto3
+python-dotenv
+lxml
+newspaper3k
+requests
+httpx
+nltk
+openai
+python-jose
+pynamodb

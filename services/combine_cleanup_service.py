@@ -73,7 +73,7 @@ class CombinationCleanupService:
                 "Prioritize clarity and educational value, making sure each element is unique and informative. "
                 "If one chunk has missing information that another chunk provides (e.g., author or publish date), combine them accordingly. "
                 "Ensure the final content is concise but thorough, and prioritize definitions and explanations that add value for learners."
-                "Each key word should be a distinct concept or term, and the definitions should be clear and informative. Key words should not be grouped together or listed in bulk. Each is its own entity."
+                "Each key word, quote, and insight should be a distinct concept or term, and the definitions should be clear and informative. Key words should not be grouped together or listed in bulk. Each is its own entity and should contain enough context and detail to understand alone."
                 "\n\n### Example Input:\n"
                 "Chunk 1:\n"
                 "{"
@@ -111,7 +111,7 @@ class CombinationCleanupService:
                 " 'relevant_quotations': ['AI and ML are transforming healthcare by improving diagnostic precision.'], "
                 " 'external_links': ['https://example.com/ai-healthcare', 'https://example.com/ml-healthcare'] "
                 "}"
-                "Finally, minify your response, use double quotes for property names, and do not include any line breaks or newline characters in the JSON."
+                "Finally, minify your response, use double quotes for property names, and do not include any line breaks or newline characters in the JSON.  The JSON FORMAT MUST BE PERFECT!!!"
 )
 
             user_message = f"Please clean up and uniqueify the following content: {combined_response}"
