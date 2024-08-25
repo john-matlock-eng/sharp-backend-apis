@@ -1,7 +1,3 @@
-provider "aws" {
-  region = var.aws_region
-}
-
 module "lambda_deployment" {
   source                = "./modules/lambda_deployment"
   aws_region            = var.aws_region
