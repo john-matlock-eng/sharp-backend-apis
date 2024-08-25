@@ -34,7 +34,7 @@ jobs:
 
     - name: Set Output for Lambda Folders
       id: set-lambda-folders
-      run: echo "::set-output name=lambda_folders::${{ env.lambda_folders }}"
+      run: echo "lambda_folders=${{ env.lambda_folders }}" >> $GITHUB_OUTPUT
 
     - name: Debug - Print Lambda Folders
       run: |
@@ -80,7 +80,7 @@ jobs:
 
     strategy:
       matrix:
-        lambda_folder: ${{ fromJson(needs.lambda-discovery.outputs.lambda_folders) }}
+        lambda_folder: ${{ fromJson(needs.create-ecr.outputs.lambda_folders) }}
 
     steps:
     - name: Checkout code
