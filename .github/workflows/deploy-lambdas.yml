@@ -84,7 +84,7 @@ jobs:
 
     strategy:
       matrix:
-        lambda_folder: ${{ fromJson(needs.create-ecr.outputs.lambda_folder) }}
+        lambda_folder: ${{ fromJson(needs.lambda-discovery.outputs.lambda_folders) }}
 
     steps:
     - name: Checkout code
