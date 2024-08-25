@@ -1,17 +1,14 @@
 name: Deploy Lambdas
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Deploy APIs"]
+    types:
+      - completed
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
-  LAMBDA_DEPLOY_ROLE_ARN: ${{ secrets.LAMBDA_DEPLOY_ROLE_ARN }}
 
 permissions:
   id-token: write
@@ -54,7 +51,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ env.LAMBDA_DEPLOY_ROLE_ARN }}
+        role-to-assume: ${{ env.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Log in to Amazon ECR
