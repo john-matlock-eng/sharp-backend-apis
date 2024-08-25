@@ -31,12 +31,19 @@ jobs:
       run: |
         if [ -d "./lambdas" ]; then
           lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | sed 's|./lambdas/||' | jq -R -s -c 'split("\n")[:-1]')
+          if [ -z "$lambda_folders" ]; then
+            lambda_folders="[]"
+          fi
         else
           lambda_folders="[]"
         fi
         echo "lambda_folders=$lambda_folders" >> $GITHUB_ENV
         echo "lambda_folders=$lambda_folders" > $GITHUB_OUTPUT
-      shell: bash
+
+    - name: Debug - Print Lambda Folders
+      run: |
+        echo "lambda_folders: ${{ steps.lambda_discovery.outputs.lambda_folders }}"
+      
 
   create-ecr:
     needs: lambda-discovery
