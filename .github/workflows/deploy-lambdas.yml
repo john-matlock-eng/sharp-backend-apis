@@ -20,30 +20,25 @@ jobs:
   lambda-discovery:
     runs-on: ubuntu-latest
     outputs:
-      lambda_folders: ${{ steps.lambda_discovery.outputs.lambda_folders }}
+      lambda_folders: ${{ steps.set-lambda-folders.outputs.lambda_folders }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Discover Lambda folders
-      id: lambda_discovery
+      id: discover-lambdas
       run: |
-        if [ -d "./lambdas" ]; then
-          lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | sed 's|./lambdas/||' | jq -R -s -c 'split("\n")[:-1]')
-          if [ -z "$lambda_folders" ]; then
-            lambda_folders="[]"
-          fi
-        else
-          lambda_folders="[]"
-        fi
+        lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | sed 's|./lambdas/||' | jq -R -s -c 'split("\n")[:-1]')
         echo "lambda_folders=$lambda_folders" >> $GITHUB_ENV
-        echo "lambda_folders=$lambda_folders" > $GITHUB_OUTPUT
+
+    - name: Set Output for Lambda Folders
+      id: set-lambda-folders
+      run: echo "::set-output name=lambda_folders::${{ env.lambda_folders }}"
 
     - name: Debug - Print Lambda Folders
       run: |
-        echo "lambda_folders: ${{ steps.lambda_discovery.outputs.lambda_folders }}"
-      
+        echo "lambda_folders: ${{ env.lambda_folders }}"
 
   create-ecr:
     needs: lambda-discovery
