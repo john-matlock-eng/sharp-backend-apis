@@ -115,8 +115,8 @@ jobs:
           memory_size=$(jq -r '.memory_size' "$config_path")
           timeout=$(jq -r '.timeout' "$config_path")
           architecture=$(jq -r '.architecture' "$config_path")
-          env_vars=$(jq -r '.environment_variables | to_entries | map("\(.key)=\(.value|tostring)") | join(",")' "$config_path")
-
+          env_vars=$(jq -r '.environment_variables | @json' "$config_path")  # Serialize to JSON
+    
           echo "memory_size=$memory_size" >> $GITHUB_ENV
           echo "timeout=$timeout" >> $GITHUB_ENV
           echo "architecture=$architecture" >> $GITHUB_ENV
@@ -148,7 +148,7 @@ jobs:
         fi
     
         if [ -n "${{ env.env_vars }}" ]; then
-          plan_command="$plan_command -var=\"environment_variables=${{ env.env_vars }}\""
+          plan_command="$plan_command -var='environment_variables=${{ env.env_vars }}'"
         fi
     
         plan_command="$plan_command -out=tfplan.txt"

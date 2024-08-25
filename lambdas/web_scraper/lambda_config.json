@@ -1,8 +1,8 @@
 {
-    "memory_size": 512,
-    "timeout": 60,
-    "architecture": "x86_64",
-    "environment_variables": {
-      "LOG_LEVEL": "INFO"
-    }
+  "memory_size": 512,
+  "timeout": 60,
+  "architecture": "x86_64",
+  "environment_variables": {
+    "LOG_LEVEL": "INFO"
   }
+}
