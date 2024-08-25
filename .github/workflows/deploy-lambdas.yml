@@ -148,7 +148,8 @@ jobs:
         fi
     
         if [ -n "${{ env.env_vars }}" ]; then
-          plan_command="$plan_command -var='environment_variables=${{ env.env_vars }}'"
+          escaped_env_vars=$(echo "${{ env.env_vars }}" | sed 's/"/\\"/g')
+          plan_command="$plan_command -var='environment_variables=${escaped_env_vars}'"
         fi
     
         plan_command="$plan_command -out=tfplan.txt"
