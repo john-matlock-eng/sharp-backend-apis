@@ -132,15 +132,7 @@ jobs:
 
     - name: Plan Terraform for Lambda
       id: terraform_plan_lambda
-      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" \
-                          -var="lambda_name=${{ matrix.lambda_folder }}" \
-                          -var="image_tag=${{ github.sha }}" \
-                          -var="dynamodb_table_name=${{ secrets.DYNAMODB_TABLE_NAME }}" \
-                          -var="architecture=${{ env.architecture }}" \
-                          -var="memory_size=${{ env.memory_size }}" \
-                          -var="timeout=${{ env.timeout }}" \
-                          -var="environment_variables=${{ env.env_vars }}" \
-                          -out=tfplan.txt
+      run: terraform plan -var="aws_region=${{ env.AWS_REGION }} -var="lambda_name=${{ matrix.lambda_folder }}" -var="image_tag=${{ github.sha }}" -var="architecture=${{ env.architecture }}" -var="memory_size=${{ env.memory_size }}" -var="timeout=${{ env.timeout }}" -var="environment_variables=${{ env.env_vars }}" -out=tfplan.txt
       working-directory: ./terraform/lambdas
 
     - name: Apply Terraform for Lambda
