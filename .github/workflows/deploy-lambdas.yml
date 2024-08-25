@@ -29,7 +29,7 @@ jobs:
     - name: Discover Lambda folders
       id: discover-lambdas
       run: |
-        lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | sed 's|./lambdas/||' | jq -R -s -c 'split("\n")[:-1]')
+        lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | sed 's|./lambdas/|"|' | sed 's|$|"|' | jq -R -s -c 'split("\n")[:-1]')
         echo "lambda_folders=$lambda_folders" >> $GITHUB_ENV
         echo "lambda_folders=$lambda_folders" # Debug output to verify correctness
 
