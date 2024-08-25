@@ -12,6 +12,7 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
   BACKEND_TF_DYNAMODB_TABLE_NAME: ${{ vars.BACKEND_TF_DYNAMODB_TABLE_NAME }}
+  API_DEPLOY_ROLE_ARN: ${{ secrets.API_DEPLOY_ROLE_ARN }}
 
 permissions:
   id-token: write
@@ -53,8 +54,27 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
+        role-to-assume: ${{ env.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
+
+    - name: Read Lambda Config
+      id: read_config
+      run: |
+        config_path="./lambdas/${{ matrix.lambda_folder }}/lambda_config.json"
+        if [ -f "$config_path" ]; then
+          memory_size=$(jq -r '.memory_size' "$config_path")
+          timeout=$(jq -r '.timeout' "$config_path")
+          architecture=$(jq -r '.architecture' "$config_path")
+          env_vars=$(jq -r '.environment_variables | to_entries | map("\(.key)=\(.value|tostring)") | join(",")' "$config_path")
+
+          echo "memory_size=$memory_size" >> $GITHUB_ENV
+          echo "timeout=$timeout" >> $GITHUB_ENV
+          echo "architecture=$architecture" >> $GITHUB_ENV
+          echo "env_vars=$env_vars" >> $GITHUB_ENV
+        else
+          echo "Config file not found, using defaults."
+        fi
+      shell: bash
 
     - name: Build Lambda Docker image
       run: |
@@ -63,12 +83,20 @@ jobs:
     - name: Initialize Terraform for Lambda
       run: |
         terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
-      working-directory: ./terraform/lambdas/${{ matrix.lambda_folder }}
+      working-directory: ./terraform/lambdas
 
     - name: Plan Terraform for Lambda
       id: terraform_plan_lambda
-      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="image_tag=${{ github.sha }}" -out=tfplan.txt
-      working-directory: ./terraform/lambdas/${{ matrix.lambda_folder }}
+      run: |
+        terraform plan -var="aws_region=${{ env.AWS_REGION }}" \
+                       -var="lambda_name=${{ matrix.lambda_folder }}" \
+                       -var="image_tag=${{ github.sha }}" \
+                       -var="memory_size=${{ env.memory_size }}" \
+                       -var="timeout=${{ env.timeout }}" \
+                       -var="architecture=${{ env.architecture }}" \
+                       -var="environment_variables=${{ env.env_vars }}" \
+                       -out=tfplan.txt
+      working-directory: ./terraform/lambdas
 
   deploy-lambdas:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -99,4 +127,4 @@ jobs:
 
     - name: Apply Terraform for Lambda
       run: terraform apply -auto-approve tfplan.txt
-      working-directory: ./terraform/lambdas/${{ matrix.lambda_folder }}
+      working-directory: ./terraform/lambdas
