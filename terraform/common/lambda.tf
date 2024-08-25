@@ -1,22 +1,22 @@
-resource "aws_lambda_function" "knowledge_source_processing_lambda" {
-  function_name = "knowledge_source_processing_lambda"
-  runtime       = "python3.11"
-  handler       = "lambda_function.lambda_handler"
-  role          = aws_iam_role.knowledge_source_processing_lambda_role.arn
-  memory_size   = 256
-  timeout       = 60
+# resource "aws_lambda_function" "knowledge_source_processing_lambda" {
+#   function_name = "knowledge_source_processing_lambda"
+#   runtime       = "python3.11"
+#   handler       = "lambda_function.lambda_handler"
+#   role          = aws_iam_role.knowledge_source_processing_lambda_role.arn
+#   memory_size   = 256
+#   timeout       = 60
 
-  environment {
-    variables = {
-      SFN_ARN = aws_sfn_state_machine.knowledge_source_processing_sfn.arn
-    }
-  }
+#   environment {
+#     variables = {
+#       SFN_ARN = aws_sfn_state_machine.knowledge_source_processing_sfn.arn
+#     }
+#   }
 
-  # Assuming your code is stored in a zip file or S3
-  filename = "path/to/your/deployment-package.zip"
+#   # Assuming your code is stored in a zip file or S3
+#   filename = "path/to/your/deployment-package.zip"
 
-  depends_on = [aws_iam_role_policy.knowledge_source_processing_lambda_policy]
-}
+#   depends_on = [aws_iam_role_policy.knowledge_source_processing_lambda_policy]
+# }
 
 # resource "aws_iam_role" "knowledge_source_processing_lambda_role" {
 #   name               = "knowledge_source_processing_lambda_role"
