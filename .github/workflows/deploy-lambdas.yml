@@ -21,7 +21,7 @@ jobs:
   lambda-discovery:
     runs-on: ubuntu-latest
     outputs:
-      lambda_folders: ${{ steps.discover-lambdas.outputs.lambda_folders }}
+      lambda_folders: ${{ steps.set-output.outputs.lambda_folders }}
 
     steps:
     - name: Checkout code
@@ -31,15 +31,20 @@ jobs:
       id: discover-lambdas
       run: |
         lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | jq -R -s -c 'split("\n")[:-1]')
-        echo "lambda_folders=$lambda_folders" >> $GITHUB_OUTPUT
+        echo "LAMBDA_FOLDERS=$lambda_folders" >> $GITHUB_ENV
+
+    - name: Set output
+      id: set-output
+      run: echo "lambda_folders=$LAMBDA_FOLDERS" >> $GITHUB_OUTPUT
 
     - name: Debug - Print Lambda Folders
       run: |
-        echo "lambda_folders: ${{ steps.discover-lambdas.outputs.lambda_folders }}"
+        echo "lambda_folders: ${{ steps.set-output.outputs.lambda_folders }}"
 
   create-ecr:
     needs: lambda-discovery
     runs-on: ubuntu-latest
+    if: ${{ fromJson(needs.lambda-discovery.outputs.lambda_folders)[0] }}
 
     strategy:
       matrix:
@@ -72,8 +77,9 @@ jobs:
       working-directory: ./terraform/lambdas/modules/ecr
 
   build-and-deploy:
-    needs: create-ecr
+    needs: [lambda-discovery, create-ecr]
     runs-on: ubuntu-latest
+    if: ${{ fromJson(needs.lambda-discovery.outputs.lambda_folders)[0] }}
 
     strategy:
       matrix:
