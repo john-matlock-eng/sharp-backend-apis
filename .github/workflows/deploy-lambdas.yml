@@ -60,9 +60,18 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Cache Terraform
+      uses: actions/cache@v3
+      with:
+        path: ~/.terraform.d/plugin-cache
+        key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+        restore-keys: |
+          ${{ runner.os }}-terraform-
+
     - name: Initialize Terraform for ECR
       run: |
-        terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/modules/ecr/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+        mkdir -p ~/.terraform.d/plugin-cache
+        terraform init -plugin-dir=~/.terraform.d/plugin-cache -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/modules/ecr/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
       working-directory: ./terraform/lambdas/modules/ecr
 
     - name: Plan Terraform for ECR
@@ -94,6 +103,28 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ matrix.lambda_folder }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-${{ matrix.lambda_folder }}-
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ./lambdas/${{ matrix.lambda_folder }}/requirements.txt
+
     - name: Copy Lambda-specific Terraform config
       run: |
         cp ./lambdas/${{ matrix.lambda_folder }}/terraform/config.tfvars ./terraform/lambdas/
@@ -104,14 +135,30 @@ jobs:
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
     - name: Build Docker image
-      run: |
-        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }} -f ./lambdas/${{ matrix.lambda_folder }}/Dockerfile .
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./lambdas/${{ matrix.lambda_folder }}/Dockerfile
+        push: false
+        tags: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
     - name: Push Docker image to ECR
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./lambdas/${{ matrix.lambda_folder }}/Dockerfile
+        push: true
+        tags: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
+        cache-from: type=local,src=/tmp/.buildx-cache
   
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
     - name: Initialize Terraform for Lambda
       run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
       working-directory: ./terraform/lambdas
@@ -126,3 +173,12 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve tfplan.txt
       working-directory: ./terraform/lambdas
+
+    - name: Save cache
+      uses: actions/cache/save@v3
+      if: always()
+      with:
+        path: |
+          /tmp/.buildx-cache
+          ~/.terraform.d/plugin-cache
+        key: ${{ runner.os }}-cache-${{ github.sha }}
