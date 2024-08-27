@@ -50,8 +50,12 @@ resource "aws_dynamodb_table" "sharp_app_data" {
     projection_type = "ALL"
   }
 
+  stream_enabled   = true
+  stream_view_type = "NEW_AND_OLD_IMAGES"
+
   tags = {
     Environment = "production"
     Name        = "sharp_app_data"
   }
 }
+

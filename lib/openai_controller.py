@@ -5,16 +5,22 @@ from typing import Dict, List, Optional
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 class OpenAIController:
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = "gpt-4o-mini", max_tokens: Optional[int] = 16000, temperature: Optional[float] = 0.9, retry_limit: Optional[int] = 3):
         self.logger = logging.getLogger(__name__)
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         openai.api_key = self.api_key
         self.client = openai.Client(api_key=self.api_key)
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        self.max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
-        self.temperature = float(os.getenv("OPENAI_TEMPERATURE", "0.9"))
-        self.retry_limit = int(os.getenv("OPENAI_RETRY_LIMIT", "3"))
-        self.logger.info("OpenAIController initialized.")
+        self.model = model
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.retry_limit = retry_limit
+        self.logger.info(f"OpenAIController initialized with model: {self.model} and max_tokens: {self.max_tokens}")
+
+    def set_model(self, model: str, max_tokens: int):
+        """Sets the model and max_tokens for the current context."""
+        self.model = model
+        self.max_tokens = max_tokens
+        self.logger.info(f"Model switched to {self.model} with max_tokens {self.max_tokens}")
 
     @retry(
         stop=stop_after_attempt(3),  # Retry up to 3 times
@@ -45,7 +51,7 @@ class OpenAIController:
         response_text = self._send_request(prompt)
         self.logger.info(f"Received response: {response_text}")
         
-        # Placeholder parsing logic - to be replaced with actual parsing according to the response structure
+       
         parsed_response = {
             "response": response_text,  # This assumes the full response is the question text; parsing may be needed
         }

@@ -109,3 +109,4 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: terraform apply -lock=false tfplan.txt
       working-directory: ./terraform/apis
+

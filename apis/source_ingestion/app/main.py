@@ -7,6 +7,7 @@ from pydantic import BaseModel, HttpUrl
 from typing import Optional
 import uuid
 from mangum import Mangum
+from app.services.cognito_service import get_current_user
 from app.services.combine_cleanup_service import get_combination_cleanup_service
 from app.services.content_processor_service import get_content_processor_service
 from app.services.webscraper_service import get_web_scraper_service
@@ -35,11 +36,11 @@ app.add_middleware(
 class UrlProcessRequest(BaseModel):
     url: HttpUrl
 
-@requires_owner('community')
 @app.post("/community/{community}/source-ingestion/url/")
 async def process_url(
     request: UrlProcessRequest,
-    community: str = Path(..., description="The community ID")
+    community: str = Path(..., description="The community ID"),
+    current_user: dict = Depends(get_current_user)
 ):
     logger.info(f"Processing URL for community {community}: {request.url}")
     
@@ -65,11 +66,12 @@ async def process_url(
         if not scraped_content:
             raise HTTPException(status_code=500, detail="Failed to scrape content from the URL")
         
-        # Step 3: Process the content
+        # Step 3: Process the content with GPT-4-O
+        content_processor_service.openai_controller.set_model("gpt-4o", 4096)
         system_message = (
             "You are a highly skilled educational assistant tasked with extracting, synthesizing, and organizing key information from complex content to serve as an educational tool for generating quiz questions, study materials, and comprehensive content summaries. Your goal is to deliver precise, structured, and comprehensive outputs that ensure thorough coverage of the content, including detailed metadata and core insights."
             "1. Identify the Author(s): Determine who created or contributed to the content. If multiple authors are mentioned, list them all. If no explicit author is found but the content is from an official source (e.g., company documentation), infer the organization or team responsible (e.g., 'AWS Documentation Team'). If no author can be identified, return 'unknown'."
-            "2. Determine the Publication/Site: Identify the website or source where the content is published. This is often found in the URL, header, or footer of the page. Use the organization or publication name if the exact site is unclear. If the site cannot be determined, return 'unknown'."
+            "2. Determine the Publication/Site: Identify the full name of the website or publication where the content is published. Use the complete publication name, not acronyms. If available, extract this information from the URL, header, or footer of the page. If the site or publication name is not explicitly stated, use the name of the organization or entity associated with the content. If the publication or site cannot be accurately determined, return 'unknown'."
             "3. Extract the Publish Date: Look for the publication date, usually near the title or byline. If the exact date is not clear, attempt to extract the last updated date from the documentation page. If no date is available, return 'unknown'."
             "4. Ascertain the Main Topic: Identify the primary focus or subject matter of the content. Summarize it in a single, clear sentence. If the main topic is unclear, return 'unknown'."
             "5. Classify the Parent Topic: Determine the broader category under which the main topic falls (e.g., 'Technology,' 'Health'). If no parent topic can be identified, return 'unknown'."
@@ -79,10 +81,9 @@ async def process_url(
             "- Explain Its Relation to the Topic: Elaborate on how the keyword connects to the main point or focus of the article, using specific mentions from the article to reinforce the explanation."
             "8. Summarize Major Insights or Novel Concepts: Identify and summarize key ideas, breakthroughs, or perspectives in the content. Format these insights as {'insight': 'summary of the idea', 'concept': 'related concept'}. If none are found, return an empty array '[]'."
             "9. Gather Supporting Details: Provide additional context, examples, or explanations that enrich the understanding of the major insights. Ensure this section is distinct from 'major insights' to avoid redundancy. If no supporting details are available, return an empty array '[]'."
-            "10. Extract Relevant Quotations: Look for impactful or informative quotes within the content. Ensure quotes are concise and directly relevant. If no relevant quotations are found, return an empty array '[]'."
+            "10. Extract Relevant Quotations: Look for impactful or informative statements within the content to pull out as quotes. Ensure quotes are concise and directly relevant. If no relevant quotations are found, return an empty array '[]'."
             "11. Identify External Links: If the content references or links to other relevant sources, include those links. These should be useful for further reading or supporting the information presented. If no external links are found, return an empty array '[]'."
             "12. Content Chunk Summary: Summarize each chunk of content. Format the output as a clean, well-organized JSON object with all the exact keys and values mentioned. Ensure your response is concise yet thorough, delivering maximum educational value."
-            "Remember to follow these steps methodically for the most accurate and valuable response."
             "Use these examples as a guide to ensure your output aligns with the expected format. Remember to follow the steps methodically for the most accurate and valuable response."
             "Example 1: {"
             " 'author': 'John Doe', "
@@ -143,9 +144,8 @@ async def process_url(
             " 'relevant_quotations': ['Quantum computing poses a significant challenge to traditional encryption, necessitating a new era of cryptography, says Dr. Allen, a pioneer in the field.'], "
             " 'external_links': ['https://sciencedaily.com/quantum-cryptography']"
             "} "
-            "Finally, minify your response, use double quotes for property names, and do not include any line breaks or newline characters in the JSON."
-        ) 
-
+            "Finally, minify your response, use double quotes for property names, and do not include any line breaks or newline characters in the JSON. The JSON FORMAT MUST BE PERFECT!!!")
+        
         processed_chunks = content_processor_service.process_content(scraped_content, system_message)
         if not processed_chunks:
             raise HTTPException(status_code=500, detail="Failed to process content")
@@ -153,7 +153,8 @@ async def process_url(
         # Step 4: Store the chunks
         knowledge_source_service.store_chunks(community, str(source_id), processed_chunks)
 
-        # Step 5: Combine and clean up the processed content
+        # Step 5: Combine and clean up the processed content with GPT-4-O-mini
+        combination_cleanup_service.openai_controller.set_model("gpt-4o-mini", 16000)
         combined_response = combination_cleanup_service.combine_responses(processed_chunks)
         final_response = combination_cleanup_service.clean_up_response(combined_response)
 
@@ -182,7 +183,8 @@ def list_knowledge_sources(
     community: str,
     limit: int = Query(20, description="Number of items to return"),
     last_evaluated_key: Optional[str] = Query(None, description="Token for pagination"),
-    knowledge_source_service: KnowledgeSourceService = Depends(get_knowledge_source_service)
+    knowledge_source_service: KnowledgeSourceService = Depends(get_knowledge_source_service),
+    current_user: dict = Depends(get_current_user)
 ):
     items, last_key = knowledge_source_service.list_knowledge_sources(community, limit, last_evaluated_key)
     return {"items": items, "next_token": last_key}
@@ -191,10 +193,11 @@ def list_knowledge_sources(
 @app.delete("/community/{community}/knowledge-source/{source_id}")
 def delete_knowledge_source(
     community: str,
-    source_id: uuid.uuid4,
+    source_id: uuid.UUID,
     knowledge_source_service: KnowledgeSourceService = Depends(get_knowledge_source_service)
 ):
     knowledge_source_service.delete_knowledge_source(community, str(source_id))
     return {"message": "Knowledge source deleted successfully"}
+
 
 handler = Mangum(app)

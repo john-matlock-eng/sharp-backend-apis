@@ -58,12 +58,16 @@ class CognitoService:
             else:
                 self.logger.error(f"Unable to find appropriate key for issuer: https://cognito-idp.{self.region}.amazonaws.com/{self.user_pool_id}")
                 raise HTTPException(status_code=400, detail="Invalid token")
+        except jwt.ExpiredSignatureError:
+            self.logger.error("Token has expired")
+            raise HTTPException(status_code=401, detail="Token has expired")
         except JWTError as e:
             self.logger.error(f"JWT error: {e}")
             raise HTTPException(status_code=400, detail="Invalid token")
         except Exception as e:
             self.logger.error(f"Token validation error: {e}")
             raise HTTPException(status_code=500, detail="Token validation error")
+
 
     def extract_claims(self, token: str):
         payload = self.validate_token(token)
