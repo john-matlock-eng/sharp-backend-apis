@@ -30,17 +30,13 @@ jobs:
     - name: Discover Lambda folders
       id: discover-lambdas
       run: |
-        lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | sed 's|./lambdas/|"|' | sed 's|$|"|' | jq -R -s -c 'split("\n")[:-1]')
-        echo "lambda_folders=$lambda_folders" >> $GITHUB_ENV
-        echo "lambda_folders=$lambda_folders" # Debug output to verify correctness
-
-    - name: Set Output for Lambda Folders
-      id: set-lambda-folders
-      run: echo "lambda_folders=${{ env.lambda_folders }}" >> $GITHUB_OUTPUT
+        lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | jq -R -s -c 'split("\n")[:-1]')
+        echo "lambda_folders=$lambda_folders" >> $GITHUB_OUTPUT
 
     - name: Debug - Print Lambda Folders
       run: |
-        echo "lambda_folders: ${{ env.lambda_folders }}" # Debugging purposes
+        echo "lambda_folders: ${{ steps.discover-lambdas.outputs.lambda_folders }}"
+
 
   create-ecr:
     needs: lambda-discovery
