@@ -5,6 +5,5 @@ architecture        = "x86_64"
 memory_size         = 512
 timeout             = 60
 environment_variables = {
-  LOG_LEVEL       = "INFO"
-  ANOTHER_ENV_VAR = "VALUE"
+  LOG_LEVEL = "INFO"
 }
