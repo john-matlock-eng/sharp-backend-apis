@@ -30,7 +30,7 @@ jobs:
     - name: Discover Lambda folders
       id: discover-lambdas
       run: |
-        lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d | jq -R -s -c 'split("\n")[:-1]')
+        lambda_folders=$(find ./lambdas -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | jq -R -s -c 'split("\n")[:-1]')
         echo "lambda_folders=$lambda_folders" >> $GITHUB_OUTPUT
 
     - name: Debug - Print Lambda Folders
@@ -106,7 +106,7 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
-
+  
     - name: Initialize Terraform for Lambda
       run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
       working-directory: ./terraform/lambdas
