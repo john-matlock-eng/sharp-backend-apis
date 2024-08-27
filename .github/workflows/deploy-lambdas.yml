@@ -71,7 +71,6 @@ jobs:
       working-directory: ./terraform/lambdas/modules/ecr
 
     - name: Apply Terraform for ECR
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         terraform apply -auto-approve tfplan.txt
       working-directory: ./terraform/lambdas/modules/ecr
