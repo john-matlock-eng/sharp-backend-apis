@@ -2,6 +2,12 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_ecr_repository" "repo" {
+  name = var.lambda_name
+}
+
 resource "aws_iam_role" "lambda_exec_role" {
   name               = "${var.lambda_name}_exec_role"
   assume_role_policy = <<EOF
