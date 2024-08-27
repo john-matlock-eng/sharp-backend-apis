@@ -60,6 +60,9 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Create Terraform cache directory
+      run: mkdir -p ~/.terraform.d/plugin-cache
+
     - name: Cache Terraform
       uses: actions/cache@v3
       with:
@@ -70,7 +73,6 @@ jobs:
 
     - name: Initialize Terraform for ECR
       run: |
-        mkdir -p ~/.terraform.d/plugin-cache
         terraform init \
           -plugin-dir=~/.terraform.d/plugin-cache \
           -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
@@ -162,8 +164,26 @@ jobs:
         rm -rf /tmp/.buildx-cache
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+    - name: Create Terraform cache directory
+      run: mkdir -p ~/.terraform.d/plugin-cache
+
+    - name: Cache Terraform
+      uses: actions/cache@v3
+      with:
+        path: ~/.terraform.d/plugin-cache
+        key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+        restore-keys: |
+          ${{ runner.os }}-terraform-
+
     - name: Initialize Terraform for Lambda
-      run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+      run: |
+        terraform init \
+          -plugin-dir=~/.terraform.d/plugin-cache \
+          -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+          -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" \
+          -backend-config="region=${{ env.AWS_REGION }}" \
+          -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" \
+          -backend-config="encrypt=true"
       working-directory: ./terraform/lambdas
 
     - name: Plan Terraform for Lambda
