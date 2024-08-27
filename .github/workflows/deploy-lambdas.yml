@@ -114,6 +114,12 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Create Terraform cache directory
+      run: mkdir -p ~/.terraform.d/plugin-cache
+
+    - name: Check Terraform cache directory
+      run: ls -la ~/.terraform.d/
+
     - name: Cache Docker layers
       uses: actions/cache@v3
       with:
@@ -166,12 +172,6 @@ jobs:
       run: |
         rm -rf /tmp/.buildx-cache
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-    - name: Create Terraform cache directory
-      run: mkdir -p ~/.terraform.d/plugin-cache
-
-    - name: Check Terraform cache directory
-      run: ls -la ~/.terraform.d/
 
     - name: Initialize Terraform for Lambda
       run: |
