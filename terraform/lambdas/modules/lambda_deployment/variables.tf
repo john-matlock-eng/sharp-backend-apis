@@ -48,3 +48,8 @@ variable "sqs_arn" {
   type        = string
   default     = ""
 }
+
+variable "openai_api_key" {
+  description = "The OpenAI API key for the Lambda function"
+  type        = string
+}
