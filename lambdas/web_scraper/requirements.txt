@@ -9,3 +9,4 @@ openai
 python-jose
 pynamodb
 lxml[html_clean]
+tenacity
