@@ -8,15 +8,6 @@ data "aws_ecr_repository" "repo" {
   name = var.lambda_name
 }
 
-
-variable "default_environment_variables" {
-  description = "Default environment variables for all Lambdas"
-  type        = map(string)
-  default = {
-    "OPENAI_API_KEY" = "${var.openai_api_key}"
-  }
-}
-
 resource "aws_iam_role" "lambda_exec_role" {
   name               = "${var.lambda_name}_exec_role"
   assume_role_policy = <<EOF
@@ -101,7 +92,13 @@ resource "aws_lambda_function" "lambda" {
   memory_size   = var.memory_size
   timeout       = var.timeout
   environment {
-    variables = [var.environment_variables, var.default_environment_variables]
+    variables = merge(
+      var.default_environment_variables,
+      {
+        "OPENAI_API_KEY" = var.openai_api_key
+      },
+      var.environment_variables
+    )
   }
 }
 
