@@ -13,7 +13,7 @@ variable "default_environment_variables" {
   description = "Default environment variables for all Lambdas"
   type        = map(string)
   default = {
-    "OPENAI_API_KEY" = var.openai_api_key
+    "OPENAI_API_KEY" = "${var.openai_api_key}"
   }
 }
 
