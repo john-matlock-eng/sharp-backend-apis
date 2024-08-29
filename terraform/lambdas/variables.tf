@@ -75,3 +75,8 @@ variable "architecture" {
   description = "The architecture for the Lambda function (e.g., arm64, x86_64)"
   type        = string
 }
+
+variable "openai_api_key" {
+  description = "The OpenAI API key for the Lambda function"
+  type        = string
+}

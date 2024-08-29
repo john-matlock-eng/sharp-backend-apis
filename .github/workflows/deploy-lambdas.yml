@@ -115,7 +115,7 @@ jobs:
     - name: Plan Terraform for Lambda
       id: terraform_plan_lambda
       run: |
-        terraform plan -var="image_tag=${{ github.sha }}" -var-file="config.tfvars" -out=tfplan.txt
+        terraform plan -var="image_tag=${{ github.sha }}" -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" -var-file="config.tfvars" -out=tfplan.txt
       working-directory: ./terraform/lambdas
 
     - name: Apply Terraform for Lambda

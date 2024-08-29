@@ -9,4 +9,5 @@ module "lambda_deployment" {
   timeout               = var.timeout
   environment_variables = var.environment_variables
   sqs_arn               = var.sqs_arn
+  openai_api_key        = var.openai_api_key
 }

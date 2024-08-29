@@ -92,7 +92,12 @@ resource "aws_lambda_function" "lambda" {
   memory_size   = var.memory_size
   timeout       = var.timeout
   environment {
-    variables = var.environment_variables
+    variables = merge(
+      {
+        "OPENAI_API_KEY" = var.openai_api_key
+      },
+      var.environment_variables
+    )
   }
 }
 
