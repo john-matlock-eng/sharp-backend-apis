@@ -93,7 +93,6 @@ resource "aws_lambda_function" "lambda" {
   timeout       = var.timeout
   environment {
     variables = merge(
-      var.default_environment_variables,
       {
         "OPENAI_API_KEY" = var.openai_api_key
       },
