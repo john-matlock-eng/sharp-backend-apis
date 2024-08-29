@@ -1,7 +1,6 @@
 pydantic
 boto3
 python-dotenv
-lxml
 newspaper3k
 requests
 httpx
@@ -9,3 +8,4 @@ nltk
 openai
 python-jose
 pynamodb
+lxml[html_clean]

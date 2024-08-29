@@ -1,5 +1,6 @@
 import json
 from typing import Any, Dict, List
+from app.services.content_processor_service import ContentProcessorService
 from app.services.webscraper_service import WebScraperService
 from app.services.knowledge_source_service import KnowledgeSourceService, KnowledgeSourceUpdate
 from app.lib.dynamodb_controller import DynamoDBController
@@ -18,6 +19,7 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
 
     # Initialize services
     scraper_service = WebScraperService()
+    content_processor_service = ContentProcessorService()
     dynamodb_controller = DynamoDBController('sharp_app_data')
     knowledge_source_service = KnowledgeSourceService(dynamodb_controller)
 
@@ -38,7 +40,7 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         }
     
     # Chunk the content
-    chunks = scraper_service.split_content(content)
+    chunks = content_processor_service.split_content(content)
     
     # Store the chunks in DynamoDB
     knowledge_source_service.store_chunks(community_id, source_id, chunks)
