@@ -40,7 +40,7 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         }
     
     # Chunk the content
-    chunks = content_processor_service.split_content(content)
+    chunks = content_processor_service.split_content(content, 4000)
     
     # Store the chunks in DynamoDB
     knowledge_source_service.store_chunks(community_id, source_id, chunks)
