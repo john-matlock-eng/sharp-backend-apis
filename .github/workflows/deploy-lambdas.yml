@@ -94,9 +94,6 @@ jobs:
         role-to-assume: ${{ secrets.API_DEPLOY_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
     - name: Copy Lambda-specific Terraform config
       run: |
         cp ./lambdas/${{ matrix.lambda_folder }}/terraform/config.tfvars ./terraform/lambdas/
@@ -107,12 +104,9 @@ jobs:
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
     - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: ./lambdas/${{ matrix.lambda_folder }}/Dockerfile
-        push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        tags: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
+      run: |
+        docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }} -f ./lambdas/${{ matrix.lambda_folder }}/Dockerfile .
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
 
     - name: Initialize Terraform for Lambda
       run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
