@@ -206,6 +206,8 @@ async def process_url(
         'url': request.url,
         'message_type': 'initial_ingestion'
     }
+
+    logger.log(logging.INFO, f"Sending message to SQS: {message}")
     sqs_controller.send_message(
         message_body=json.dumps(message)
     )
