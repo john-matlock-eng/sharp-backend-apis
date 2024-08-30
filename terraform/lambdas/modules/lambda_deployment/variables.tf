@@ -53,3 +53,8 @@ variable "openai_api_key" {
   description = "The OpenAI API key for the Lambda function"
   type        = string
 }
+
+variable "knowledge_source_sqs_url" {
+  description = "The SQS URL for the knowledge source ingestion queue"
+  type        = string
+}

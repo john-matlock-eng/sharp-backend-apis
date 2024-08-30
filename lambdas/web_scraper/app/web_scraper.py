@@ -4,6 +4,8 @@ from app.services.content_processor_service import ContentProcessorService
 from app.services.webscraper_service import WebScraperService
 from app.services.knowledge_source_service import KnowledgeSourceService, KnowledgeSourceUpdate
 from app.lib.dynamodb_controller import DynamoDBController
+from app.lib.sqs_controller import SQSController  # Import your SQSController
+import os
 
 def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     # Extract necessary information from the event
@@ -23,6 +25,13 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     dynamodb_controller = DynamoDBController('sharp_app_data')
     knowledge_source_service = KnowledgeSourceService(dynamodb_controller)
 
+    # Initialize SQS controller
+    sqs_queue_url = os.getenv('KNOWLEDGE_SOURCE_SQS_URL')
+    sqs_controller = SQSController(queue_url=sqs_queue_url)
+
+    # Send SQS message first
+    send_sqs_message(sqs_controller, community_id, source_id, url)
+    
     # Update knowledge source status to "Processing"
     update_data = KnowledgeSourceUpdate(source_status="Processing")
     knowledge_source_service.update_knowledge_source(community_id, source_id, update_data)
@@ -56,3 +65,13 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
             'chunks': chunks
         })
     }
+
+def send_sqs_message(sqs_controller: SQSController, community_id: str, source_id: str, url: str) -> None:
+    message = {
+        'community_id': community_id,
+        'source_id': source_id,
+        'url': url
+    }
+    sqs_controller.send_message(
+        message_body=json.dumps(message)
+    )
