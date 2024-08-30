@@ -97,7 +97,10 @@ resource "aws_lambda_function" "lambda" {
         "OPENAI_API_KEY" = var.openai_api_key
       },
       {
-        "KNOWLEDGE_SOURCE_SQS_URL" = var.knowledge_source_sqs_url
+        "KNOWLEDGE_SOURCE_URL_INITIAL_INGESTION_QUEUE" = var.knowledge_source_url_initial_ingestion_queue
+      },
+      {
+        "KNOWLEGE_SOURCE_CHUNK_PROCESSING_QUEUE" = var.knowledge_source_chunk_processing_queue
       },
       var.environment_variables
     )

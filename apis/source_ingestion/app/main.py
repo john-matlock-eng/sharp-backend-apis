@@ -6,6 +6,7 @@ import logging
 from pydantic import BaseModel, HttpUrl
 from typing import Optional
 import uuid
+import json
 from mangum import Mangum
 from app.services.cognito_service import get_current_user
 from app.services.knowledge_source_service import get_knowledge_source_service, KnowledgeSourceCreate
@@ -213,7 +214,7 @@ async def process_url(
 >>>>>>> Stashed changes
     # Return a simple response indicating success
     return {
-        "message": "Knowledge source record created successfully",
+        "message": "Knowledge source record created successfully and message sent to SQS",
         "community": community,
         "source_id": str(source_id),
         "url": request.url

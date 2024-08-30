@@ -81,7 +81,12 @@ variable "openai_api_key" {
   type        = string
 }
 
-variable "knowledge_source_sqs_url" {
+variable "knowledge_source_url_initial_ingestion_queue" {
+  description = "The SQS URL for the knowledge source ingestion queue"
+  type        = string
+}
+
+variable "knowledge_source_chunk_processing_queue" {
   description = "The SQS URL for the knowledge source ingestion queue"
   type        = string
 }
