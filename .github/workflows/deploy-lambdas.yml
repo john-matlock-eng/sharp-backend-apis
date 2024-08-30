@@ -12,7 +12,6 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
   BACKEND_TF_DYNAMODB_TABLE_NAME: ${{ vars.BACKEND_TF_DYNAMODB_TABLE_NAME }}
-  KNOWLEDGE_SOURCE_SQS_URL: ${{ vars.KNOWLEDGE_SOURCE_SQS_URL }}
 
 permissions:
   id-token: write
@@ -110,13 +109,21 @@ jobs:
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
 
     - name: Initialize Terraform for Lambda
-      run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" -backend-config="encrypt=true"
+      run: terraform init -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+        -backend-config="key=lambdas/${{ matrix.lambda_folder }}/terraform.tfstate" \ 
+        -backend-config="region=${{ env.AWS_REGION }}" \
+        -backend-config="dynamodb_table=${{ env.BACKEND_TF_DYNAMODB_TABLE_NAME }}" \
+        -backend-config="encrypt=true"
       working-directory: ./terraform/lambdas
 
     - name: Plan Terraform for Lambda
       id: terraform_plan_lambda
       run: |
-        terraform plan -var="image_tag=${{ github.sha }}" -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" -var="knowledge_source_sqs_url=${{ env.KNOWLEDGE_SOURCE_SQS_URL }}" -var-file="config.tfvars" -out=tfplan.txt
+        terraform plan -var="image_tag=${{ github.sha }}" \
+          -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
+          -var="knowledge_source_url_initial_ingestion_queue=${{ secrets.KNOWLEGE_SOURCE_URL_INITIAL_INGESTION_QUEUE }}" \
+          -var-file="config.tfvars" -out=tfplan.txt
+          -var="knowledge_source_chunk_processing_queue=${{ secrets.KNOWLEGE_SOURCE_CHUNK_PROCESSING_QUEUE }}" \
       working-directory: ./terraform/lambdas
 
     - name: Apply Terraform for Lambda
