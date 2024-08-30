@@ -12,7 +12,7 @@ from app.services.cognito_service import get_current_user
 from app.services.knowledge_source_service import get_knowledge_source_service, KnowledgeSourceCreate
 from app.services.community_service import requires_owner, requires_member
 from app.services.knowledge_source_service import KnowledgeSourceService
-
+import os
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
