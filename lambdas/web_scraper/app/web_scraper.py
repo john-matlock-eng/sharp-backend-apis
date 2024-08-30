@@ -1,10 +1,10 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 from app.services.content_processor_service import ContentProcessorService
 from app.services.webscraper_service import WebScraperService
 from app.services.knowledge_source_service import KnowledgeSourceService, KnowledgeSourceUpdate
 from app.lib.dynamodb_controller import DynamoDBController
-from app.lib.sqs_controller import SQSController  # Import your SQSController
+from app.lib.sqs_controller import SQSController
 import os
 
 def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
@@ -26,12 +26,9 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     knowledge_source_service = KnowledgeSourceService(dynamodb_controller)
 
     # Initialize SQS controller
-    sqs_queue_url = os.getenv('KNOWLEDGE_SOURCE_SQS_URL')
+    sqs_queue_url = os.getenv('KNOWLEGE_SOURCE_CHUNK_PROCESSING_QUEUE')
     sqs_controller = SQSController(queue_url=sqs_queue_url)
 
-    # Send SQS message first
-    send_sqs_message(sqs_controller, community_id, source_id, url)
-    
     # Update knowledge source status to "Processing"
     update_data = KnowledgeSourceUpdate(source_status="Processing")
     knowledge_source_service.update_knowledge_source(community_id, source_id, update_data)
@@ -51,7 +48,10 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     # Chunk the content
     chunks = content_processor_service.split_content(content, 4000)
     
-    # Store the chunks in DynamoDB
+    # Send each chunk as an SQS message
+    send_chunk_messages(sqs_controller, community_id, source_id, chunks)
+    
+    # Store the chunks in DynamoDB (optional, depending on your workflow)
     knowledge_source_service.store_chunks(community_id, source_id, chunks)
 
     # Update knowledge source status to "Completed"
@@ -66,12 +66,15 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         })
     }
 
-def send_sqs_message(sqs_controller: SQSController, community_id: str, source_id: str, url: str) -> None:
-    message = {
-        'community_id': community_id,
-        'source_id': source_id,
-        'url': url
-    }
-    sqs_controller.send_message(
-        message_body=json.dumps(message)
-    )
+def send_chunk_messages(sqs_controller: SQSController, community_id: str, source_id: str, chunks: List[str]) -> None:
+    for idx, chunk in enumerate(chunks):
+        message = {
+            'community_id': community_id,
+            'source_id': source_id,
+            'chunk_id': idx,  # Adding an index to identify the chunk
+            'chunk_content': chunk,
+            'message_type': 'chunk'  # Include metadata to identify the message type
+        }
+        sqs_controller.send_message(
+            message_body=json.dumps(message)
+        )

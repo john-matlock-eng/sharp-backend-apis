@@ -194,6 +194,23 @@ async def process_url(
     )
     knowledge_source_service.create_knowledge_source(knowledge_source)
 
+<<<<<<< Updated upstream
+=======
+    # Step 2: Send a message to SQS to trigger the next step
+    sqs_queue_url = os.getenv('KNOWLEDGE_SOURCE_URL_INITIAL_INGESTION_QUEUE')
+    sqs_controller = SQSController(queue_url=sqs_queue_url)
+    
+    message = {
+        'community_id': community,
+        'source_id': str(source_id),
+        'url': request.url,
+        'message_type': 'initial_ingestion'
+    }
+    sqs_controller.send_message(
+        message_body=json.dumps(message)
+    )
+
+>>>>>>> Stashed changes
     # Return a simple response indicating success
     return {
         "message": "Knowledge source record created successfully",
