@@ -6,6 +6,7 @@ import logging
 from pydantic import BaseModel, HttpUrl
 from typing import Optional
 import uuid
+import json
 from mangum import Mangum
 from app.services.cognito_service import get_current_user
 from app.services.knowledge_source_service import get_knowledge_source_service, KnowledgeSourceCreate
@@ -194,9 +195,23 @@ async def process_url(
     )
     knowledge_source_service.create_knowledge_source(knowledge_source)
 
+    # Step 2: Send a message to SQS to trigger the next step
+    sqs_queue_url = os.getenv('KNOWLEDGE_SOURCE_SQS_URL')
+    sqs_controller = SQSController(queue_url=sqs_queue_url)
+    
+    message = {
+        'community_id': community,
+        'source_id': str(source_id),
+        'url': request.url,
+        'message_type': 'initial_ingestion'
+    }
+    sqs_controller.send_message(
+        message_body=json.dumps(message)
+    )
+
     # Return a simple response indicating success
     return {
-        "message": "Knowledge source record created successfully",
+        "message": "Knowledge source record created successfully and message sent to SQS",
         "community": community,
         "source_id": str(source_id),
         "url": request.url
