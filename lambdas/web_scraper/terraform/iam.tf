@@ -11,7 +11,7 @@ resource "aws_lambda_permission" "allow_sqs_trigger" {
   action        = "lambda:InvokeFunction"
   function_name = "web_scraper"
   principal     = "sqs.amazonaws.com"
-  source_arn    = data.aws_sqs_queue.knowledge_source_processing_queue.arn
+  source_arn    = data.aws_sqs_queue.knowledge_source_url_initial_ingestion_queue.arn
 }
 
 resource "aws_iam_policy" "lambda_sqs_policy" {

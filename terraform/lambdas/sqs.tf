@@ -5,7 +5,7 @@ resource "aws_sqs_queue" "knowledge_source_url_initial_ingestion_queue" {
   max_message_size           = 262144 # 256 KB
   delay_seconds              = 0      # No delivery delay
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.knowledge_source_processing_dlq.arn
+    deadLetterTargetArn = aws_sqs_queue.knowledge_source_url_initial_ingestion_dlq.arn
     maxReceiveCount     = 5
   })
 }
@@ -24,7 +24,7 @@ resource "aws_sqs_queue" "knowledge_source_chunk_processing_queue" {
   max_message_size           = 262144 # 256 KB
   delay_seconds              = 0      # No delivery delay
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.knowledge_source_processing_dlq.arn
+    deadLetterTargetArn = aws_sqs_queue.knowledge_source_chunk_processing_dlq.arn
     maxReceiveCount     = 5
   })
 }
