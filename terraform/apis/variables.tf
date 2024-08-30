@@ -26,3 +26,8 @@ variable "cognito_user_pool_client_id" {
   type        = string
   default     = ""
 }
+
+variable "knowledge_source_url_initial_ingestion_queue" {
+  description = "The SQS URL for the knowledge source ingestion queue"
+  type        = string
+}

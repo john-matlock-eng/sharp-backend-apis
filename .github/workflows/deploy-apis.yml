@@ -102,7 +102,7 @@ jobs:
 
     - name: Plan Terraform
       id: terraform_plan
-      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}" -var="cognito_user_pool_id=${{ env.COGNITO_USER_POOL_ID }}" -var="cognito_user_pool_client_id=${{ env.COGNITO_USER_POOL_CLIENT_ID }}" -out=tfplan.txt -lock=false
+      run: terraform plan -var="aws_region=${{ env.AWS_REGION }}" -var="api_name=${{ matrix.api_folder }}" -var="image_tag=${{ github.sha }}" -var="cognito_user_pool_id=${{ env.COGNITO_USER_POOL_ID }}" -var="cognito_user_pool_client_id=${{ env.COGNITO_USER_POOL_CLIENT_ID }}" -var="knowledge_source_url_initial_ingestion_queue=${{ secrets.KNOWLEGE_SOURCE_URL_INITIAL_INGESTION_QUEUE }}" -out=tfplan.txt -lock=false
       working-directory: ./terraform/apis
 
     - name: Apply Terraform
