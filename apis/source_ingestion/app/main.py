@@ -191,7 +191,7 @@ async def process_url(
     knowledge_source = KnowledgeSourceCreate(
         source_id=source_id,
         community_id=community,
-        url=request.url,
+        url=str(request.url),
         source_status="Pending"
     )
     knowledge_source_service.create_knowledge_source(knowledge_source)
@@ -203,7 +203,7 @@ async def process_url(
     message = {
         'community_id': str(community),
         'source_id': str(source_id),
-        'url': request.url,
+        'url': str(request.url),
         'message_type': 'initial_ingestion'
     }
 
@@ -217,7 +217,7 @@ async def process_url(
         "message": "Knowledge source record created successfully and message sent to SQS",
         "community": community,
         "source_id": str(source_id),
-        "url": request.url
+        "url": str(request.url)
     }
 
 @requires_member('community')
