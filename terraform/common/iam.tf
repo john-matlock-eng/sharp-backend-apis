@@ -1,6 +1,6 @@
 resource "aws_iam_policy" "lambda_policy" {
   name        = "lambda_policy"
-  description = "IAM policy for Lambda to access DynamoDB"
+  description = "IAM policy for Lambda to access DynamoDB and SQS"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -26,10 +26,17 @@ resource "aws_iam_policy" "lambda_policy" {
         ],
         "Resource" : "*"
       },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "sqs:SendMessage",
+          "sqs:GetQueueUrl"
+        ],
+        "Resource" : "*"
+      }
     ],
   })
 }
-
 resource "aws_iam_role" "cognito_post_confirmation_lambda_exec" {
   name               = "cognito_post_confirmation_lambda_exec"
   assume_role_policy = <<EOF
