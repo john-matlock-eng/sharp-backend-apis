@@ -201,7 +201,7 @@ async def process_url(
     sqs_controller = SQSController(queue_url=sqs_queue_url)
     
     message = {
-        'community_id': community,
+        'community_id': str(community),
         'source_id': str(source_id),
         'url': request.url,
         'message_type': 'initial_ingestion'
