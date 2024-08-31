@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 from app.services.content_processor_service import ContentProcessorService
 from app.services.webscraper_service import WebScraperService
 from app.services.knowledge_source_service import KnowledgeSourceService, KnowledgeSourceUpdate
