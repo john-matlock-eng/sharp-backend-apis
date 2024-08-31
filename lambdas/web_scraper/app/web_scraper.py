@@ -5,12 +5,12 @@ from app.services.webscraper_service import WebScraperService
 from app.services.knowledge_source_service import KnowledgeSourceService, KnowledgeSourceUpdate
 from app.lib.dynamodb_controller import DynamoDBController
 from app.lib.sqs_controller import SQSController
-from app.lib.custom_logger import get_logger  # Import your logging library
+import logging
 import os
 
 def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     # Initialize your custom logger
-    logger = get_logger()
+    logger = logging.getLogger()
 
     logger.info("Lambda handler started with event: %s", json.dumps(event))
     
