@@ -103,7 +103,7 @@ resource "aws_lambda_function" "lambda" {
 
 
 resource "aws_iam_policy" "api_lambda_sqs_policy" {
-  name        = "${var.api_name}_api_lambda_sqs_policy"
+  name        = "${var.api_name}_lambda_sqs_policy"
   description = "Policy for Lambda to send messages to SQS"
 
   policy = jsonencode({
