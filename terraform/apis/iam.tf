@@ -21,26 +21,3 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.api_lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
-
-resource "aws_iam_policy" "api_lambda_sqs_policy" {
-  name        = "${var.api_name}_api_lambda_sqs_policy"
-  description = "Policy for Lambda to send messages to SQS"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "sqs:SendMessage"
-        ],
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "api_lambda_policy_attachment" {
-  role       = aws_iam_role.api_lambda_exec.name
-  policy_arn = aws_iam_policy.api_lambda_sqs_policy.arn
-}
