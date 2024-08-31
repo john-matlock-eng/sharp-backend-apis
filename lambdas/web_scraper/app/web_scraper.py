@@ -34,14 +34,14 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
                 }
 
             # Initialize services
-            scraper_service = WebScraperService(logger=logger)
-            content_processor_service = ContentProcessorService(logger=logger)
-            dynamodb_controller = DynamoDBController('sharp_app_data', logger=logger)
-            knowledge_source_service = KnowledgeSourceService(dynamodb_controller, logger=logger)
+            scraper_service = WebScraperService()
+            content_processor_service = ContentProcessorService()
+            dynamodb_controller = DynamoDBController('sharp_app_data')
+            knowledge_source_service = KnowledgeSourceService(dynamodb_controller)
 
             # Initialize SQS controller
             sqs_queue_url = os.getenv('KNOWLEDGE_SOURCE_CHUNK_PROCESSING_QUEUE')
-            sqs_controller = SQSController(queue_url=sqs_queue_url, logger=logger)
+            sqs_controller = SQSController(queue_url=sqs_queue_url)
 
             # Update knowledge source status to "Processing"
             update_data = KnowledgeSourceUpdate(source_status="Processing")
