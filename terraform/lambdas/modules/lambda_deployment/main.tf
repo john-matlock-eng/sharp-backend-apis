@@ -100,7 +100,7 @@ resource "aws_lambda_function" "lambda" {
         "KNOWLEDGE_SOURCE_URL_INITIAL_INGESTION_QUEUE" = var.knowledge_source_url_initial_ingestion_queue
       },
       {
-        "KNOWLEGE_SOURCE_CHUNK_PROCESSING_QUEUE" = var.knowledge_source_chunk_processing_queue
+        "KNOWLEDGE_SOURCE_CHUNK_PROCESSING_QUEUE" = var.knowledge_source_chunk_processing_queue
       },
       var.environment_variables
     )

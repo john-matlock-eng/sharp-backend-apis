@@ -124,7 +124,7 @@ jobs:
         terraform plan -var="image_tag=${{ github.sha }}" \
           -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
           -var="knowledge_source_url_initial_ingestion_queue=${{ secrets.KNOWLEGE_SOURCE_URL_INITIAL_INGESTION_QUEUE }}" \
-          -var="knowledge_source_chunk_processing_queue=${{ secrets.KNOWLEGE_SOURCE_CHUNK_PROCESSING_QUEUE }}" \
+          -var="knowledge_source_chunk_processing_queue=${{ secrets.KNOWLEDGE_SOURCE_CHUNK_PROCESSING_QUEUE }}" \
           -var-file="config.tfvars" -out=tfplan.txt
       working-directory: ./terraform/lambdas
     

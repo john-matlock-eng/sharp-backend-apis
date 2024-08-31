@@ -26,7 +26,7 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     knowledge_source_service = KnowledgeSourceService(dynamodb_controller)
 
     # Initialize SQS controller
-    sqs_queue_url = os.getenv('KNOWLEGE_SOURCE_CHUNK_PROCESSING_QUEUE')
+    sqs_queue_url = os.getenv('KNOWLEDGE_SOURCE_CHUNK_PROCESSING_QUEUE')
     sqs_controller = SQSController(queue_url=sqs_queue_url)
 
     # Update knowledge source status to "Processing"
