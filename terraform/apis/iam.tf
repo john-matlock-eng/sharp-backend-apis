@@ -13,11 +13,11 @@ resource "aws_iam_role" "api_lambda_exec" {
         "Sid": ""
       },
       {
-        Effect = "Allow",
-        Action = [
+        "Effect": "Allow",
+        "Action": [
           "sqs:sendmessage"
         ],
-        Resource = "*"
+        "Resource": "*"
       },
     ]
   }
