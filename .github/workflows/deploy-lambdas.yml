@@ -111,6 +111,9 @@ jobs:
         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }} -f ./lambdas/${{ matrix.lambda_folder }}/Dockerfile .
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.lambda_folder }}:${{ github.sha }}
 
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v1
+
     - name: Initialize Terraform for Lambda
       run: |
         terraform init \
